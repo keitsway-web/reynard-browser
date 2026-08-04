@@ -1,0 +1,38 @@
+name: Build TrollStore TIPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install dependencies
+        run: brew install ldid
+
+      - name: Build App
+        run: |
+          chmod +x tools/release/build-app.sh
+          ./tools/release/build-app.sh
+
+      - name: Create TIPA Package
+        run: |
+          chmod +x tools/release/create-ipa.sh
+          ./tools/release/create-ipa.sh
+
+      - name: Upload Reynard-TrollStore.tipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reynard-TrollStore
+          path: dist/Reynard-TrollStore.tipa

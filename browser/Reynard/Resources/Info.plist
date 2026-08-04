@@ -70,5 +70,7 @@
 			</dict>
 		</dict>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Webサイトでマイク機能（音声検索や録音など）を利用するためにマイクへのアクセス許可が必要です。</string>
 </dict>
 </plist>
