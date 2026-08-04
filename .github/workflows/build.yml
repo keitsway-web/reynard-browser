@@ -38,7 +38,15 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path || true
 
       - name: Install dependencies
-        run: brew install ldid
+        run: brew install ldid ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
 
       - name: Update and Patch Gecko Engine
         run: |

@@ -29,13 +29,17 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	if [ -n "$SDK_PATH" ]; then
 		echo "ac_add_options --with-macos-sdk=$SDK_PATH"
 	fi
+	if command -v ccache >/dev/null 2>&1; then
+		echo "ac_add_options --with-ccache=ccache"
+	fi
 	echo "ac_add_options --enable-webrtc"
 	echo "ac_add_options --enable-optimize"
 	echo "ac_add_options --enable-release"
 	echo "ac_add_options --enable-rust-simd"
-	echo "ac_add_options --enable-lto"
+	echo "ac_add_options --enable-lto=thin"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
+	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j\$(sysctl -n hw.ncpu)\""
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
