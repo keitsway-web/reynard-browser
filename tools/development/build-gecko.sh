@@ -20,10 +20,15 @@ if [ -f "$FIREFOX_DIR/.mozconfig" ]; then
 	mv "$FIREFOX_DIR/.mozconfig" "$FIREFOX_DIR/.mozconfig.bak"
 fi
 
+SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+
 {
 	echo "ac_add_options --enable-application=mobile/ios"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
+	if [ -n "$SDK_PATH" ]; then
+		echo "ac_add_options --with-macos-sdk=$SDK_PATH"
+	fi
 	echo "ac_add_options --enable-webrtc"
 	echo "ac_add_options --enable-optimize"
 	echo "ac_add_options --enable-release"
@@ -38,6 +43,9 @@ if ! rustup target list | grep -q "^$TARGET (installed)"; then
 fi
 
 cd "$FIREFOX_DIR"
+if [ -n "$SDK_PATH" ]; then
+	export SDKROOT="$SDK_PATH"
+fi
 ./mach build
 
 rm -f "$FIREFOX_DIR/.mozconfig"

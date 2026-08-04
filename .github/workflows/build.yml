@@ -26,11 +26,16 @@ jobs:
 
       - name: Select Xcode Version
         run: |
-          sudo xcode-select -s /Applications/Xcode_16.app || \
+          sudo xcode-select -s /Applications/Xcode_16.2.0.app || \
+          sudo xcode-select -s /Applications/Xcode_16.1.0.app || \
+          sudo xcode-select -s /Applications/Xcode_16.0.0.app || \
+          sudo xcode-select -s /Applications/Xcode_16.2.app || \
           sudo xcode-select -s /Applications/Xcode_16.1.app || \
           sudo xcode-select -s /Applications/Xcode_16.0.app || \
+          sudo xcode-select -s /Applications/Xcode_16.app || \
           sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path || true
 
       - name: Install dependencies
         run: brew install ldid
