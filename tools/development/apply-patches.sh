@@ -68,8 +68,8 @@ if os.path.exists(file_path):
     with open(file_path, 'r') as f:
         content = f.read()
     target_str = 'if version < Version(mac_sdk_min_version()):'
-    replacement = 'if version < Version(mac_sdk_min_version()):\n            if target.os == \'iOS\':\n                return sdk'
-    if target_str in content and 'target.os == \'iOS\'' not in content:
+    replacement = 'if \"iPhone\" in str(sdk) or \"iOS\" in str(sdk):\n            return sdk\n        if version < Version(mac_sdk_min_version()):'
+    if target_str in content and 'return sdk' not in content:
         content = content.replace(target_str, replacement)
         with open(file_path, 'w') as f:
             f.write(content)
