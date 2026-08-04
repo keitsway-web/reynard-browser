@@ -52,14 +52,6 @@ if [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain)" ]]; then
 	exit 1
 fi
 
-setopt null_glob
-patch_files=("$PATCH_DIR"/**/*.patch)
-
-if (( ${#patch_files[@]} == 0 )); then
-	echo "No patch files found in $PATCH_DIR."
-	exit 0
-fi
-
 echo "Applying iOS SDK patch to moz.configure files..."
 python3 -c "
 import glob
@@ -82,6 +74,15 @@ for filepath in files:
             f.write(new_content)
         print('Successfully bypassed SDK check in ' + filepath)
 "
+
+setopt null_glob
+patch_files=("$PATCH_DIR"/**/*.patch)
+
+if (( ${#patch_files[@]} == 0 )); then
+	echo "No patch files found in $PATCH_DIR."
+	echo "Finished applying patches."
+	exit 0
+fi
 
 echo "Applying patches to $SUBMODULE_PATH..."
 for patch_file in $patch_files; do
