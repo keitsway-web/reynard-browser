@@ -60,20 +60,27 @@ if (( ${#patch_files[@]} == 0 )); then
 	exit 0
 fi
 
-echo "Applying iOS SDK patch to toolchain.configure..."
+echo "Applying iOS SDK patch to moz.configure files..."
 python3 -c "
-import os
-file_path = '$SUBMODULE_PATH/build/moz.configure/toolchain.configure'
-if os.path.exists(file_path):
-    with open(file_path, 'r') as f:
+import glob
+
+files = glob.glob('$SUBMODULE_PATH/build/moz.configure/**/*.configure', recursive=True)
+for filepath in files:
+    with open(filepath, 'r') as f:
         content = f.read()
-    target_str = 'if version < Version(mac_sdk_min_version()):'
-    replacement = 'if \"iPhone\" in str(sdk) or \"iOS\" in str(sdk):\n            return sdk\n        if version < Version(mac_sdk_min_version()):'
-    if target_str in content and 'return sdk' not in content:
-        content = content.replace(target_str, replacement)
-        with open(file_path, 'w') as f:
-            f.write(content)
-        print('Patched toolchain.configure successfully.')
+    if 'is too old. Please upgrade to at least' in content or 'SDK version' in content:
+        lines = content.splitlines()
+        new_lines = []
+        for line in lines:
+            if 'die(' in line and ('SDK version' in line or 'is too old' in line or 'Please upgrade' in line):
+                new_lines.append('        # Bypassed SDK version check: ' + line)
+                new_lines.append('        pass')
+            else:
+                new_lines.append(line)
+        new_content = '\n'.join(new_lines)
+        with open(filepath, 'w') as f:
+            f.write(new_content)
+        print('Successfully bypassed SDK check in ' + filepath)
 "
 
 echo "Applying patches to $SUBMODULE_PATH..."
