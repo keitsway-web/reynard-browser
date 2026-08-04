@@ -38,7 +38,7 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path || true
 
       - name: Install dependencies
-        run: brew install ldid ccache lld
+        run: brew install ldid ccache lld cbindgen
 
       - name: Cache ccache
         uses: actions/cache@v4
