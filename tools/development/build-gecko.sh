@@ -20,6 +20,8 @@ if [ -f "$FIREFOX_DIR/.mozconfig" ]; then
 	mv "$FIREFOX_DIR/.mozconfig" "$FIREFOX_DIR/.mozconfig.bak"
 fi
 
+export PATH="/opt/homebrew/opt/lld/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
 
 {
@@ -31,6 +33,9 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	fi
 	if command -v ccache >/dev/null 2>&1; then
 		echo "ac_add_options --with-ccache=ccache"
+	fi
+	if command -v lld >/dev/null 2>&1 || command -v ld.lld >/dev/null 2>&1; then
+		echo "ac_add_options --enable-linker=lld"
 	fi
 	echo "ac_add_options --enable-webrtc"
 	echo "ac_add_options --enable-optimize"
