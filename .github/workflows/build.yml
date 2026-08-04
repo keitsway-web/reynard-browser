@@ -19,6 +19,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
       - name: Select Xcode Version
         run: |
           sudo xcode-select -s /Applications/Xcode_16.app || \
@@ -29,6 +34,19 @@ jobs:
 
       - name: Install dependencies
         run: brew install ldid
+
+      - name: Update and Patch Gecko Engine
+        run: |
+          zsh tools/development/update-gecko.sh
+          zsh tools/development/apply-patches.sh
+
+      - name: Build iDevice Support
+        run: |
+          zsh tools/development/build-idevice.sh
+
+      - name: Build Gecko Engine
+        run: |
+          sh tools/development/build-gecko.sh
 
       - name: Build App
         run: |
