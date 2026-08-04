@@ -14,3 +14,8 @@ LIBRARY_SEARCH_PATHS = $(inherited) $(GECKO_DIST)/bin
 FRAMEWORK_SEARCH_PATHS = $(inherited) $(BUILT_PRODUCTS_DIR)
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @loader_path/Frameworks
 SWIFT_OBJC_BRIDGING_HEADER = $(SRCROOT)/Reynard/Bridging/Reynard-Bridging-Header.h
+
+CODE_SIGNING_ALLOWED = NO
+CODE_SIGNING_REQUIRED = NO
+CODE_SIGN_IDENTITY = 
+
