@@ -12,8 +12,11 @@ OUTPUT_LIB="$REPO_ROOT/browser/Reynard/JIT/RPPairing/libidevice_ffi.a"
 TARGET_DIR="$SUBMODULE_PATH/target"
 DEPLOYMENT_TARGET="13.0"
 
-if [ ! -e "$SUBMODULE_PATH/.git" ]; then
-  git -C "$REPO_ROOT" submodule update --init --recursive support/idevice
+IDEVICE_URL="https://github.com/jkcoxson/idevice"
+if [ ! -d "$SUBMODULE_PATH/.git" ] && [ ! -f "$SUBMODULE_PATH/.git" ]; then
+  echo "Cloning idevice repository to $SUBMODULE_PATH..."
+  mkdir -p "$SUBMODULE_PATH"
+  git clone --depth 1 "$IDEVICE_URL" "$SUBMODULE_PATH" 2>/dev/null || git -C "$REPO_ROOT" submodule update --init --recursive support/idevice || true
 fi
 
 RUST_TARGET="aarch64-apple-ios"
