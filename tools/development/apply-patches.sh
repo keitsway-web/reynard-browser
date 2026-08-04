@@ -60,16 +60,41 @@ if (( ${#patch_files[@]} == 0 )); then
 	exit 0
 fi
 
+echo "Applying iOS SDK patch to toolchain.configure..."
+python3 -c "
+import os
+file_path = '$SUBMODULE_PATH/build/moz.configure/toolchain.configure'
+if os.path.exists(file_path):
+    with open(file_path, 'r') as f:
+        content = f.read()
+    target_str = 'if version < Version(mac_sdk_min_version()):'
+    replacement = 'if version < Version(mac_sdk_min_version()):\n            if target.os == \'iOS\':\n                return sdk'
+    if target_str in content and 'target.os == \'iOS\'' not in content:
+        content = content.replace(target_str, replacement)
+        with open(file_path, 'w') as f:
+            f.write(content)
+        print('Patched toolchain.configure successfully.')
+"
+
 echo "Applying patches to $SUBMODULE_PATH..."
 for patch_file in $patch_files; do
 	rel_path="${patch_file#$PATCH_DIR/}"
+	if [[ "$rel_path" == *"toolchain.configure"* ]]; then
+		continue
+	fi
 	echo "Applying $rel_path..."
 
-	if ! git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file"; then
+	if ! git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null && \
+	   ! git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null && \
+	   ! git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file"; then
 		echo "Failed to apply $rel_path."
-		echo "Resolve conflicts in $SUBMODULE_PATH, then press Enter to continue or type q to stop."
-		read -r response
-		if [[ "$response" == "q" || "$response" == "Q" ]]; then
+		if [[ -t 0 ]]; then
+			echo "Resolve conflicts in $SUBMODULE_PATH, then press Enter to continue or type q to stop."
+			read -r response
+			if [[ "$response" == "q" || "$response" == "Q" ]]; then
+				exit 1
+			fi
+		else
 			exit 1
 		fi
 	fi
