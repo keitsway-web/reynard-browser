@@ -21,9 +21,10 @@ if [[ -z "$RELEASE_TAG" ]]; then
 	exit 1
 fi
 
-if ! git submodule status -- "$SUBMODULE_PATH" >/dev/null 2>&1; then
-	echo "Missing submodule $SUBMODULE_PATH. Add it first, then run tools/development/update-gecko.sh."
-	exit 1
+if ! git submodule status -- "$SUBMODULE_PATH" >/dev/null 2>&1 || [[ ! -e "$SUBMODULE_PATH/.git" ]]; then
+	echo "Initializing submodule $SUBMODULE_PATH..."
+	git submodule init -- "$SUBMODULE_PATH" || true
+	git submodule update --init --recursive "$SUBMODULE_PATH" || true
 fi
 
 if ! git -C "$SUBMODULE_PATH" rev-parse -q --verify "$RELEASE_TAG^{commit}" >/dev/null 2>&1; then
