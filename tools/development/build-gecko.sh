@@ -37,6 +37,7 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	if command -v lld >/dev/null 2>&1 || command -v ld.lld >/dev/null 2>&1; then
 		echo "ac_add_options --enable-linker=lld"
 	fi
+	echo "ac_add_options --without-wasm-sandboxed-libraries"
 	echo "ac_add_options --enable-webrtc"
 	echo "ac_add_options --enable-optimize"
 	echo "ac_add_options --enable-release"
