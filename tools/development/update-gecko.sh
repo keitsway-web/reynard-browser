@@ -21,10 +21,14 @@ if [[ -z "$RELEASE_TAG" ]]; then
 	exit 1
 fi
 
-if ! git submodule status -- "$SUBMODULE_PATH" >/dev/null 2>&1 || [[ ! -e "$SUBMODULE_PATH/.git" ]]; then
-	echo "Initializing submodule $SUBMODULE_PATH..."
-	git submodule init -- "$SUBMODULE_PATH" || true
-	git submodule update --init --recursive "$SUBMODULE_PATH" || true
+if [[ ! -d "$SUBMODULE_PATH/.git" && ! -f "$SUBMODULE_PATH/.git" ]]; then
+	echo "Initializing Firefox source repository at $SUBMODULE_PATH..."
+	mkdir -p "$SUBMODULE_PATH"
+	git -C "$SUBMODULE_PATH" init
+	git -C "$SUBMODULE_PATH" remote add origin "$FIREFOX_URL" 2>/dev/null || git -C "$SUBMODULE_PATH" remote set-url origin "$FIREFOX_URL"
+else
+	echo "Updating existing Firefox source at $SUBMODULE_PATH..."
+	git -C "$SUBMODULE_PATH" remote set-url origin "$FIREFOX_URL" 2>/dev/null || true
 fi
 
 if ! git ls-remote --exit-code --tags "$FIREFOX_URL" "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
@@ -33,11 +37,6 @@ if ! git ls-remote --exit-code --tags "$FIREFOX_URL" "refs/tags/$RELEASE_TAG" >/
 fi
 
 TAG_REF="refs/tags/$RELEASE_TAG"
-
-echo "Updating existing submodule at $SUBMODULE_PATH"
-git submodule set-url -- "$SUBMODULE_PATH" "$FIREFOX_URL"
-git submodule sync -- "$SUBMODULE_PATH"
-git submodule update --init --depth 1 -- "$SUBMODULE_PATH"
 
 echo "Fetching and checking out tag $RELEASE_TAG..."
 git -C "$SUBMODULE_PATH" fetch --depth 1 origin tag "$RELEASE_TAG"
