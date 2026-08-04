@@ -61,9 +61,9 @@ for filepath in files:
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
-        if 'mac_sdk_min_version' in content or 'is too old. Please upgrade to at least' in content or 'SDK version' in content:
-            new_content = content.replace('if version < Version(mac_sdk_min_version()):', 'if False:')
-            new_content = new_content.replace('if version < Version(', 'if False:')
+        if 'mac_sdk_min_version' in content or 'ios_sdk_min_version' in content or 'is too old. Please upgrade to at least' in content or 'SDK version' in content:
+            new_content = content.replace('if version < Version(', 'if False and version < Version(')
+            new_content = new_content.replace('if version < ', 'if False and version < ')
             if new_content != content:
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(new_content)
