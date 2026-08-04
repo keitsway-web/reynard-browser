@@ -1,0 +1,12 @@
+diff --git a/build/moz.configure/toolchain.configure b/build/moz.configure/toolchain.configure
+--- a/build/moz.configure/toolchain.configure
++++ b/build/moz.configure/toolchain.configure
+@@ -410,6 +410,8 @@
+         version = Version(version)
+         if version < Version(mac_sdk_min_version()):
++            if target.os == 'iOS':
++                return sdk
+             die(
+                 'SDK version "%s" is too old. Please upgrade to at least %s. Try '
+                 'updating your system Xcode.' % (version, mac_sdk_min_version())
+             )
