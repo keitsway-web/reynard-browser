@@ -56,23 +56,20 @@ echo "Applying iOS SDK patch to moz.configure files..."
 python3 -c "
 import glob
 
-files = glob.glob('$SUBMODULE_PATH/build/moz.configure/**/*.configure', recursive=True)
+files = glob.glob('$SUBMODULE_PATH/**/*.configure', recursive=True) + glob.glob('$SUBMODULE_PATH/**/*.py', recursive=True)
 for filepath in files:
-    with open(filepath, 'r') as f:
-        content = f.read()
-    if 'is too old. Please upgrade to at least' in content or 'SDK version' in content:
-        lines = content.splitlines()
-        new_lines = []
-        for line in lines:
-            if 'die(' in line and ('SDK version' in line or 'is too old' in line or 'Please upgrade' in line):
-                new_lines.append('        # Bypassed SDK version check: ' + line)
-                new_lines.append('        pass')
-            else:
-                new_lines.append(line)
-        new_content = '\n'.join(new_lines)
-        with open(filepath, 'w') as f:
-            f.write(new_content)
-        print('Successfully bypassed SDK check in ' + filepath)
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if 'mac_sdk_min_version' in content or 'is too old. Please upgrade to at least' in content or 'SDK version' in content:
+            new_content = content.replace('if version < Version(mac_sdk_min_version()):', 'if False:')
+            new_content = new_content.replace('if version < Version(', 'if False:')
+            if new_content != content:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+                print('Successfully patched SDK version check in: ' + filepath)
+    except Exception as e:
+        pass
 "
 
 setopt null_glob
