@@ -39,7 +39,24 @@ fi
 TAG_REF="refs/tags/$RELEASE_TAG"
 
 echo "Fetching and checking out tag $RELEASE_TAG..."
-git -C "$SUBMODULE_PATH" fetch --depth 1 origin tag "$RELEASE_TAG"
+git -C "$SUBMODULE_PATH" config http.postBuffer 524288000
+git -C "$SUBMODULE_PATH" config http.lowSpeedLimit 0
+git -C "$SUBMODULE_PATH" config http.lowSpeedTime 999999
+
+n=0
+until (( n >= 5 )); do
+	if git -C "$SUBMODULE_PATH" fetch --depth 1 origin tag "$RELEASE_TAG"; then
+		break
+	fi
+	n=$((n + 1))
+	if (( n >= 5 )); then
+		echo "Failed to fetch tag $RELEASE_TAG after 5 attempts."
+		exit 1
+	fi
+	echo "Git fetch failed (attempt $n/5). Retrying in 5 seconds..."
+	sleep 5
+done
+
 git -C "$SUBMODULE_PATH" checkout --detach "$TAG_REF^{commit}"
 
 EXPECTED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "$TAG_REF^{commit}")"
