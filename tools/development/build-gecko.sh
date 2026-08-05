@@ -38,14 +38,15 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 		echo "ac_add_options --enable-linker=lld"
 	fi
 	echo "ac_add_options --without-wasm-sandboxed-libraries"
-	echo "ac_add_options --enable-webrtc"
-	echo "ac_add_options --enable-optimize"
+	echo "ac_add_options --disable-accessibility"
+	echo "ac_add_options --disable-webrtc"
+	echo "ac_add_options --enable-optimize=\"-O1\""
 	echo "ac_add_options --enable-release"
-	echo "ac_add_options --enable-rust-simd"
 	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
 	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j1\""
+	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
@@ -56,6 +57,9 @@ cd "$FIREFOX_DIR"
 if [ -n "$SDK_PATH" ]; then
 	export SDKROOT="$SDK_PATH"
 fi
+export CARGO_BUILD_JOBS=1
+export PARALLEL_JOBS=1
+export PYTHONUNBUFFERED=1
 ./mach build
 
 rm -f "$FIREFOX_DIR/.mozconfig"
