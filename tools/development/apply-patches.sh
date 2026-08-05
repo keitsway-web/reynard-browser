@@ -72,6 +72,34 @@ for filepath in files:
         pass
 "
 
+echo "Patching sys/fileport.h for iOS compatibility..."
+python3 -c "
+import glob
+
+files = glob.glob('$SUBMODULE_PATH/**/*.cpp', recursive=True) + glob.glob('$SUBMODULE_PATH/**/*.cc', recursive=True) + glob.glob('$SUBMODULE_PATH/**/*.h', recursive=True) + glob.glob('$SUBMODULE_PATH/**/*.mm', recursive=True)
+for filepath in files:
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if '#include <sys/fileport.h>' in content and 'TARGET_OS_IPHONE' not in content:
+            replacement = '''#include <TargetConditionals.h>
+#if !TARGET_OS_IPHONE
+#include <sys/fileport.h>
+#else
+#include <mach/mach.h>
+extern \"C\" {
+int fileport_makeport(int fd, mach_port_t* portname);
+int fileport_makefd(mach_port_t portname);
+}
+#endif'''
+            new_content = content.replace('#include <sys/fileport.h>', replacement)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            print('Successfully patched sys/fileport.h in: ' + filepath)
+    except Exception as e:
+        pass
+"
+
 setopt null_glob
 patch_files=("$PATCH_DIR"/**/*.patch)
 
