@@ -100,6 +100,25 @@ int fileport_makefd(mach_port_t portname);
         pass
 "
 
+echo "Patching AVAudioSessionCategoryOptionAllowBluetoothHFP for libcubeb iOS..."
+python3 -c "
+import os
+audiounit_file = '$SUBMODULE_PATH/media/libcubeb/src/cubeb_audiounit_ios.mm'
+if os.path.exists(audiounit_file):
+    with open(audiounit_file, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+    if 'AVAudioSessionCategoryOptionAllowBluetoothHFP' in content and '#define AVAudioSessionCategoryOptionAllowBluetoothHFP' not in content:
+        header = '''#import <AVFoundation/AVFoundation.h>
+#ifndef AVAudioSessionCategoryOptionAllowBluetoothHFP
+#define AVAudioSessionCategoryOptionAllowBluetoothHFP (1U << 5)
+#endif
+'''
+        content = header + content
+        with open(audiounit_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print('Successfully patched AVAudioSessionCategoryOptionAllowBluetoothHFP in cubeb_audiounit_ios.mm')
+"
+
 setopt null_glob
 patch_files=("$PATCH_DIR"/**/*.patch)
 
