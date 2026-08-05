@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15 # macOS Apple Silicon runner with Xcode 16 support
+    runs-on: macos-14 # macOS Apple Silicon (Sonoma) stable runner
 
     steps:
       - name: Checkout repository

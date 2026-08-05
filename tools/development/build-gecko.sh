@@ -40,7 +40,7 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	echo "ac_add_options --without-wasm-sandboxed-libraries"
 	echo "ac_add_options --disable-accessibility"
 	echo "ac_add_options --disable-webrtc"
-	echo "ac_add_options --enable-optimize=\"-O1\""
+	echo "ac_add_options --enable-optimize=-O1"
 	echo "ac_add_options --enable-release"
 	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
