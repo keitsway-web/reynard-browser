@@ -21,33 +21,43 @@ if [ -f "$FIREFOX_DIR/.mozconfig" ]; then
 fi
 
 export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/lld/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+export CCACHE_DIR="$HOME/.ccache"
+export CCACHE_MAXSIZE="10G"
+export CCACHE_COMPRESS=1
 
-MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
-IOS_SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
+export SCCACHE_DIR="$HOME/.sccache"
+export SCCACHE_CACHE_SIZE="10G"
+
+NCPU="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
+export CARGO_BUILD_JOBS="$NCPU"
+
+SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
 
 {
 	echo "ac_add_options --enable-application=mobile/ios"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
-	if [ -n "$MACOS_SDK_PATH" ]; then
-		echo "ac_add_options --with-macos-sdk=$MACOS_SDK_PATH"
+	if [ -n "$SDK_PATH" ]; then
+		echo "ac_add_options --with-macos-sdk=$SDK_PATH"
 	fi
-	if command -v ccache >/dev/null 2>&1; then
+	if command -v sccache >/dev/null 2>&1; then
+		echo "ac_add_options --with-compiler-wrapper=sccache"
+		export RUSTC_WRAPPER="sccache"
+	elif command -v ccache >/dev/null 2>&1; then
 		echo "ac_add_options --with-ccache=ccache"
 	fi
 	if command -v lld >/dev/null 2>&1 || command -v ld.lld >/dev/null 2>&1; then
 		echo "ac_add_options --enable-linker=lld"
 	fi
 	echo "ac_add_options --without-wasm-sandboxed-libraries"
-	echo "ac_add_options --disable-accessibility"
-	echo "ac_add_options --disable-webrtc"
-	echo "ac_add_options --enable-optimize=-O1"
+	echo "ac_add_options --enable-webrtc"
+	echo "ac_add_options --enable-optimize"
 	echo "ac_add_options --enable-release"
-	echo "ac_add_options --disable-lto"
+	echo "ac_add_options --enable-rust-simd"
+	echo "ac_add_options --enable-lto=thin"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j1\""
-	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
+	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j$NCPU\""
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
@@ -55,13 +65,17 @@ if ! rustup target list | grep -q "^$TARGET (installed)"; then
 fi
 
 cd "$FIREFOX_DIR"
-if [ -n "$IOS_SDK_PATH" ]; then
-	export SDKROOT="$IOS_SDK_PATH"
+if [ -n "$SDK_PATH" ]; then
+	export SDKROOT="$SDK_PATH"
 fi
-export CARGO_BUILD_JOBS=1
-export PARALLEL_JOBS=1
 export PYTHONUNBUFFERED=1
 ./mach build
+
+if command -v sccache >/dev/null 2>&1; then
+	sccache --show-stats || true
+elif command -v ccache >/dev/null 2>&1; then
+	ccache -s || true
+fi
 
 rm -f "$FIREFOX_DIR/.mozconfig"
 if [ -f "$FIREFOX_DIR/.mozconfig.bak" ]; then

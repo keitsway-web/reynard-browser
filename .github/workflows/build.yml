@@ -38,7 +38,15 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-path || true
 
       - name: Install dependencies
-        run: brew install ldid ccache lld cbindgen
+        run: brew install ldid sccache ccache lld cbindgen
+
+      - name: Cache sccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.sccache
+          key: ${{ runner.os }}-sccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
 
       - name: Cache ccache
         uses: actions/cache@v4
@@ -47,6 +55,17 @@ jobs:
           key: ${{ runner.os }}-ccache-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-ccache-
+
+      - name: Cache Cargo Registry & Git
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Cache Gecko Build Directory
         uses: actions/cache@v4
