@@ -29,7 +29,12 @@ export SCCACHE_DIR="$HOME/.sccache"
 export SCCACHE_CACHE_SIZE="10G"
 
 NCPU="$(sysctl -n hw.ncpu 2>/dev/null || echo 4)"
-export CARGO_BUILD_JOBS="$NCPU"
+if [ "$NCPU" -gt 2 ]; then
+	JOBS=3
+else
+	JOBS=2
+fi
+export CARGO_BUILD_JOBS="$JOBS"
 
 SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
 
@@ -57,7 +62,7 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	echo "ac_add_options --enable-lto=thin"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j$NCPU\""
+	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j$JOBS\""
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
