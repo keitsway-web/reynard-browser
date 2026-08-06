@@ -28,9 +28,10 @@ export CCACHE_COMPRESS=1
 export SCCACHE_DIR="$HOME/.sccache"
 export SCCACHE_CACHE_SIZE="10G"
 
-JOBS=2
+JOBS=1
 export CARGO_BUILD_JOBS="$JOBS"
 export PARALLEL_JOBS="$JOBS"
+export MOZ_PARALLEL_BUILD="$JOBS"
 
 SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
 
@@ -52,14 +53,13 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	fi
 	echo "ac_add_options --without-wasm-sandboxed-libraries"
 	echo "ac_add_options --enable-webrtc"
-	echo "ac_add_options --enable-optimize"
+	echo "ac_add_options --enable-optimize=-O1"
 	echo "ac_add_options --enable-release"
-	echo "ac_add_options --enable-rust-simd"
-	echo "ac_add_options --enable-lto=thin"
+	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j$JOBS\""
-	echo "mk_add_options MOZ_PARALLEL_BUILD=$JOBS"
+	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j1\""
+	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
