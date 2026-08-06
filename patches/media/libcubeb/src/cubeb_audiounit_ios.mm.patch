@@ -17,6 +17,10 @@ index 000000000000..39461c54048a
 +#  import <AVFoundation/AVFoundation.h>
 +#  include "cubeb/cubeb.h"
 +
++#ifndef AVAudioSessionCategoryOptionAllowBluetoothHFP
++#  define AVAudioSessionCategoryOptionAllowBluetoothHFP AVAudioSessionCategoryOptionAllowBluetooth
++#endif
++
 +namespace {
 +
 +static NSMutableDictionary<NSNumber*, NSString*>* cubeb_ios_token_to_uid() {
