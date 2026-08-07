@@ -67,8 +67,8 @@ if ! rustup target list | grep -q "^$TARGET (installed)"; then
 fi
 
 cd "$FIREFOX_DIR"
-if [ -n "$IOS_SDK_PATH" ]; then
-	export SDKROOT="$IOS_SDK_PATH"
+if [ -n "$SDK_PATH" ]; then
+	export SDKROOT="$SDK_PATH"
 fi
 export PYTHONUNBUFFERED=1
 ./mach build
