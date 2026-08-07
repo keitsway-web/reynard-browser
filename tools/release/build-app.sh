@@ -14,6 +14,27 @@ mkdir -p "$DIST_DIR"
 cp "$XCCONFIG_PATH" "$DIST_DIR/Reynard.xcconfig"
 
 BUILD_SHA=$(git -C "$ROOT_DIR" rev-parse HEAD | cut -c1-7)
-sed -i '' "s/CURRENT_BUILD = .*/CURRENT_BUILD = $BUILD_SHA/" "$DIST_DIR/Reynard.xcconfig"
+python3 -c "
+with open('$DIST_DIR/Reynard.xcconfig', 'r', encoding='utf-8') as f:
+    c = f.read()
+c = c.replace('CURRENT_BUILD = UNKNOWN', 'CURRENT_BUILD = $BUILD_SHA')
+with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
 
-xcodebuild archive -scheme "Reynard" -archivePath "$DIST_DIR/Reynard.xcarchive" -project "$PROJECT_PATH" -sdk iphoneos -arch arm64 -configuration Release -xcconfig "$DIST_DIR/Reynard.xcconfig" CODE_SIGN_STYLE=Manual CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" PROVISIONING_PROFILE_SPECIFIER=""
+xcodebuild archive \
+	-scheme "Reynard" \
+	-archivePath "$DIST_DIR/Reynard.xcarchive" \
+	-project "$PROJECT_PATH" \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO
