@@ -68,14 +68,18 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Cache Gecko Build Directory
+        id: cache-gecko
         uses: actions/cache@v4
         with:
-          path: engine/firefox/obj-aarch64-apple-ios
-          key: ${{ runner.os }}-gecko-obj-${{ hashFiles('engine/release.txt', 'patches/**') }}
+          path: |
+            engine/firefox/obj-aarch64-apple-ios
+            ~/.mozbuild
+          key: ${{ runner.os }}-gecko-obj-v2-${{ hashFiles('engine/release.txt', 'patches/**') }}
           restore-keys: |
-            ${{ runner.os }}-gecko-obj-
+            ${{ runner.os }}-gecko-obj-v2-
 
       - name: Update and Patch Gecko Engine
+        if: steps.cache-gecko.outputs.cache-hit != 'true'
         run: |
           zsh tools/development/update-gecko.sh
           zsh tools/development/apply-patches.sh
@@ -85,6 +89,7 @@ jobs:
           zsh tools/development/build-idevice.sh
 
       - name: Build Gecko Engine
+        if: steps.cache-gecko.outputs.cache-hit != 'true'
         run: |
           sh tools/development/build-gecko.sh
 
