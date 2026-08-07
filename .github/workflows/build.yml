@@ -74,9 +74,9 @@ jobs:
           path: |
             engine/firefox/obj-aarch64-apple-ios
             ~/.mozbuild
-          key: ${{ runner.os }}-gecko-obj-v2-${{ hashFiles('engine/release.txt', 'patches/**') }}
+          key: ${{ runner.os }}-gecko-obj-v4-${{ hashFiles('engine/release.txt', 'patches/**') }}
           restore-keys: |
-            ${{ runner.os }}-gecko-obj-v2-
+            ${{ runner.os }}-gecko-obj-v4-
 
       - name: Update and Patch Gecko Engine
         if: steps.cache-gecko.outputs.cache-hit != 'true'
