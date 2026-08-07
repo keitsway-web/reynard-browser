@@ -33,14 +33,15 @@ export CARGO_BUILD_JOBS="$JOBS"
 export PARALLEL_JOBS="$JOBS"
 export MOZ_PARALLEL_BUILD="$JOBS"
 
-SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+IOS_SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 
 {
 	echo "ac_add_options --enable-application=mobile/ios"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
-	if [ -n "$SDK_PATH" ]; then
-		echo "ac_add_options --with-macos-sdk=$SDK_PATH"
+	if [ -n "$MACOS_SDK_PATH" ]; then
+		echo "ac_add_options --with-macos-sdk=$MACOS_SDK_PATH"
 	fi
 	if command -v sccache >/dev/null 2>&1; then
 		echo "ac_add_options --with-compiler-wrapper=sccache"
@@ -67,8 +68,8 @@ if ! rustup target list | grep -q "^$TARGET (installed)"; then
 fi
 
 cd "$FIREFOX_DIR"
-if [ -n "$SDK_PATH" ]; then
-	export SDKROOT="$SDK_PATH"
+if [ -n "$IOS_SDK_PATH" ]; then
+	export SDKROOT="$IOS_SDK_PATH"
 fi
 export PYTHONUNBUFFERED=1
 ./mach build
