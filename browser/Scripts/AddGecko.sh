@@ -18,11 +18,13 @@ mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}"
 cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/"
 cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL"
 
-for file in "${FRAMEWORKS_DIR}/XUL" "${FRAMEWORKS_DIR}/"*.dylib; do
-	if [ -f "${file}" ]; then
-		codesign --force --sign "${SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${file}"
-	fi
-done
+if [ -n "${SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
+	for file in "${FRAMEWORKS_DIR}/XUL" "${FRAMEWORKS_DIR}/"*.dylib; do
+		if [ -f "${file}" ]; then
+			codesign --force --sign "${SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${file}" 2>/dev/null || true
+		fi
+	done
+fi
 
 # copy the rest of the files, excluding the ones we already copied and the test files
 rsync -pvtrlL --delete --exclude "XUL" --exclude "*.dylib" --exclude "Test*" --exclude "test_*" --exclude "*_unittest" "${GECKO_DIST_BIN}/" "${GECKOVIEW_FW_FRAMEWORKS}"
@@ -32,5 +34,7 @@ mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}/default-theme"
 cp -RfL "${DEFAULT_THEME_SRC}/" "${GECKOVIEW_FW_FRAMEWORKS}/default-theme/"
 echo "resource default-theme file:default-theme/" >> "${GECKOVIEW_FW_FRAMEWORKS}/chrome.manifest"
 
-# sign the GeckoView.framework
-codesign --force --sign "${SIGN_IDENTITY}" "${GECKOVIEW_FW}"
+# sign the GeckoView.framework if signing is enabled
+if [ -n "${SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
+	codesign --force --sign "${SIGN_IDENTITY}" "${GECKOVIEW_FW}" 2>/dev/null || true
+fi

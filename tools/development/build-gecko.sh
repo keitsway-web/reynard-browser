@@ -28,20 +28,19 @@ export CCACHE_COMPRESS=1
 export SCCACHE_DIR="$HOME/.sccache"
 export SCCACHE_CACHE_SIZE="10G"
 
-JOBS=1
+JOBS=2
 export CARGO_BUILD_JOBS="$JOBS"
 export PARALLEL_JOBS="$JOBS"
 export MOZ_PARALLEL_BUILD="$JOBS"
 
-MACOS_SDK_PATH="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
-IOS_SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
+SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
 
 {
 	echo "ac_add_options --enable-application=mobile/ios"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
-	if [ -n "$MACOS_SDK_PATH" ]; then
-		echo "ac_add_options --with-macos-sdk=$MACOS_SDK_PATH"
+	if [ -n "$SDK_PATH" ]; then
+		echo "ac_add_options --with-macos-sdk=$SDK_PATH"
 	fi
 	if command -v sccache >/dev/null 2>&1; then
 		echo "ac_add_options --with-compiler-wrapper=sccache"
@@ -59,8 +58,8 @@ IOS_SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j1\""
-	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
+	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j$JOBS\""
+	echo "mk_add_options MOZ_PARALLEL_BUILD=$JOBS"
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then
