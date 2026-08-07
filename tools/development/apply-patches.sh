@@ -52,6 +52,35 @@ if [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain)" ]]; then
 	exit 1
 fi
 
+setopt null_glob
+patch_files=("$PATCH_DIR"/**/*.patch)
+
+if (( ${#patch_files[@]} > 0 )); then
+	echo "Applying patches to $SUBMODULE_PATH..."
+	for patch_file in $patch_files; do
+		rel_path="${patch_file#$PATCH_DIR/}"
+		if [[ "$rel_path" == *"toolchain.configure"* ]]; then
+			continue
+		fi
+		echo "Applying $rel_path..."
+
+		if ! git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null && \
+		   ! git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null && \
+		   ! git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file"; then
+			echo "Failed to apply $rel_path."
+			if [[ -t 0 ]]; then
+				echo "Resolve conflicts in $SUBMODULE_PATH, then press Enter to continue or type q to stop."
+				read -r response
+				if [[ "$response" == "q" || "$response" == "Q" ]]; then
+					exit 1
+				fi
+			else
+				exit 1
+			fi
+		fi
+	done
+fi
+
 echo "Applying iOS SDK patch to moz.configure files..."
 python3 -c "
 import glob
@@ -100,38 +129,22 @@ int fileport_makefd(mach_port_t portname);
         pass
 "
 
+echo "Patching AVAudioSessionCategoryOptionAllowBluetoothHFP for libcubeb iOS..."
+python3 -c "
+import glob
 
-setopt null_glob
-patch_files=("$PATCH_DIR"/**/*.patch)
-
-if (( ${#patch_files[@]} == 0 )); then
-	echo "No patch files found in $PATCH_DIR."
-	echo "Finished applying patches."
-	exit 0
-fi
-
-echo "Applying patches to $SUBMODULE_PATH..."
-for patch_file in $patch_files; do
-	rel_path="${patch_file#$PATCH_DIR/}"
-	if [[ "$rel_path" == *"toolchain.configure"* ]]; then
-		continue
-	fi
-	echo "Applying $rel_path..."
-
-	if ! git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null && \
-	   ! git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null && \
-	   ! git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file"; then
-		echo "Failed to apply $rel_path."
-		if [[ -t 0 ]]; then
-			echo "Resolve conflicts in $SUBMODULE_PATH, then press Enter to continue or type q to stop."
-			read -r response
-			if [[ "$response" == "q" || "$response" == "Q" ]]; then
-				exit 1
-			fi
-		else
-			exit 1
-		fi
-	fi
-done
+files = glob.glob('$SUBMODULE_PATH/media/libcubeb/src/**/*.mm', recursive=True) + glob.glob('$SUBMODULE_PATH/media/libcubeb/src/**/*.cpp', recursive=True) + glob.glob('$SUBMODULE_PATH/media/libcubeb/src/**/*.h', recursive=True)
+for filepath in files:
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if 'AVAudioSessionCategoryOptionAllowBluetoothHFP' in content:
+            new_content = content.replace('AVAudioSessionCategoryOptionAllowBluetoothHFP', 'AVAudioSessionCategoryOptionAllowBluetooth')
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(new_content)
+            print('Successfully replaced AVAudioSessionCategoryOptionAllowBluetoothHFP in: ' + filepath)
+    except Exception as e:
+        pass
+"
 
 echo "Finished applying patches."
