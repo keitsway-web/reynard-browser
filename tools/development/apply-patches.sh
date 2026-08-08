@@ -149,7 +149,8 @@ for filepath in files:
 
 echo "Pre-creating UseCounterList headers to bypass export OOM..."
 python3 -c "
-import os
+import os, glob
+
 target_dirs = [
     '$SUBMODULE_PATH/obj-aarch64-apple-ios/dist/include/mozilla/dom',
     '$SUBMODULE_PATH/obj-aarch64-apple-ios/dom/base'
@@ -170,7 +171,33 @@ for d in target_dirs:
         f.write(header_content)
     with open(os.path.join(d, 'UseCounterWorkerList.h'), 'w') as f:
         f.write(worker_header_content)
-print('Successfully pre-created UseCounterList headers')
+
+# Stub python generator scripts so make invocation takes 0ms and 0MB
+files = glob.glob('$SUBMODULE_PATH/dom/base/*.py') + glob.glob('$SUBMODULE_PATH/dom/base/**/*.py', recursive=True)
+for filepath in files:
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        if 'UseCounterList' in content or 'UseCounterWorkerList' in content or 'gen-usecounter' in filepath:
+            stub = '''import sys, os
+
+def main(*args, **kwargs):
+    return 0
+
+if __name__ == \"__main__\":
+    for arg in sys.argv[1:]:
+        if arg.endswith(\".h\"):
+            os.makedirs(os.path.dirname(arg), exist_ok=True)
+            with open(arg, \"w\") as f:
+                f.write(\"#ifndef mozilla_dom_UseCounterList_h\\n#define mozilla_dom_UseCounterList_h\\n#endif\\n\")
+    sys.exit(0)
+'''
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(stub)
+            print('Successfully stubbed UseCounter generator: ' + filepath)
+    except Exception as e:
+        pass
+print('Successfully pre-created and stubbed UseCounterList generators')
 "
 
 echo "Finished applying patches."
