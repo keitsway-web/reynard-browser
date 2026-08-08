@@ -56,8 +56,6 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	echo "ac_add_options --disable-parental-controls"
 	echo "ac_add_options --disable-updater"
 	echo "ac_add_options --disable-crashreporter"
-	echo "ac_add_options --disable-telemetry"
-	echo "ac_add_options --disable-healthreport"
 	echo "ac_add_options --enable-webrtc"
 	echo "ac_add_options --enable-optimize=-O1"
 	echo "ac_add_options --enable-release"
