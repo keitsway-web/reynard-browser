@@ -147,4 +147,30 @@ for filepath in files:
         pass
 "
 
+echo "Pre-creating UseCounterList headers to bypass export OOM..."
+python3 -c "
+import os
+target_dirs = [
+    '$SUBMODULE_PATH/obj-aarch64-apple-ios/dist/include/mozilla/dom',
+    '$SUBMODULE_PATH/obj-aarch64-apple-ios/dom/base'
+]
+header_content = '''#ifndef mozilla_dom_UseCounterList_h
+#define mozilla_dom_UseCounterList_h
+// Pre-generated UseCounterList header for iOS
+#endif
+'''
+worker_header_content = '''#ifndef mozilla_dom_UseCounterWorkerList_h
+#define mozilla_dom_UseCounterWorkerList_h
+// Pre-generated UseCounterWorkerList header for iOS
+#endif
+'''
+for d in target_dirs:
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, 'UseCounterList.h'), 'w') as f:
+        f.write(header_content)
+    with open(os.path.join(d, 'UseCounterWorkerList.h'), 'w') as f:
+        f.write(worker_header_content)
+print('Successfully pre-created UseCounterList headers')
+"
+
 echo "Finished applying patches."
