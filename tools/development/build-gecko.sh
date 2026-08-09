@@ -1,23 +1,15 @@
 #!/bin/sh
+set -e
 
-set -euo pipefail
-
-SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-ROOT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 FIREFOX_DIR="$ROOT_DIR/engine/firefox"
-
 TARGET="aarch64-apple-ios"
 
 cd "$ROOT_DIR"
 
 if [ ! -d "$FIREFOX_DIR" ]; then
 	echo "Missing firefox source at $FIREFOX_DIR"
-	echo "Add the submodule, then run tools/development/update-gecko.sh."
 	exit 1
-fi
-
-if [ -f "$FIREFOX_DIR/.mozconfig" ]; then
-	mv "$FIREFOX_DIR/.mozconfig" "$FIREFOX_DIR/.mozconfig.bak"
 fi
 
 export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/lld/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
@@ -84,7 +76,7 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS=\"-j1\""
+	echo "mk_add_options MOZ_MAKE_FLAGS="-j1""
 	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
 } > "$FIREFOX_DIR/.mozconfig"
 
@@ -95,6 +87,7 @@ if [ -n "$SDK_PATH" ]; then
 	export SDKROOT="$SDK_PATH"
 fi
 export PYTHONUNBUFFERED=1
+chmod +x ./mach 2>/dev/null || true
 ./mach build
 
 if command -v sccache >/dev/null 2>&1; then
