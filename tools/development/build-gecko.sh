@@ -21,6 +21,28 @@ if [ -f "$FIREFOX_DIR/.mozconfig" ]; then
 fi
 
 export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/lld/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+mkdir -p "$HOME/.cargo/bin"
+cat << 'EOF' > "$HOME/.cargo/bin/cbindgen"
+#!/bin/sh
+out=""
+prev=""
+for arg in "$@"; do
+    if [ "$prev" = "-o" ] || [ "$prev" = "--output" ]; then
+        out="$arg"
+    fi
+    prev="$arg"
+done
+
+if [ -n "$out" ]; then
+    mkdir -p "$(dirname "$out")"
+    guard="cbindgen_$(basename "$out" | tr -c 'a-zA-Z0-9' '_')"
+    printf "#ifndef %s\n#define %s\n#endif\n" "$guard" "$guard" > "$out"
+fi
+exit 0
+EOF
+chmod +x "$HOME/.cargo/bin/cbindgen"
+
 export CCACHE_DIR="$HOME/.ccache"
 export CCACHE_MAXSIZE="10G"
 export CCACHE_COMPRESS=1
