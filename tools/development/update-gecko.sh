@@ -21,6 +21,12 @@ if [[ -z "$RELEASE_TAG" ]]; then
 	exit 1
 fi
 
+mkdir -p "$SUBMODULE_PATH"
+if [[ ! -d "$SUBMODULE_PATH/.git" && ! -f "$SUBMODULE_PATH/.git" ]]; then
+	git -C "$SUBMODULE_PATH" init
+	git -C "$SUBMODULE_PATH" remote add origin "$FIREFOX_URL" 2>/dev/null || git -C "$SUBMODULE_PATH" remote set-url origin "$FIREFOX_URL"
+fi
+
 if git -C "$SUBMODULE_PATH" rev-parse -q --verify "$RELEASE_TAG^{commit}" >/dev/null 2>&1; then
 	echo "Tag $RELEASE_TAG is already present in $SUBMODULE_PATH. Skipping network fetch."
 	git -C "$SUBMODULE_PATH" checkout --detach "$RELEASE_TAG^{commit}" || true
