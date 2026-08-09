@@ -33,10 +33,12 @@ if [[ ! -d "$PATCH_DIR" ]]; then
 	exit 1
 fi
 
-if [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain)" ]]; then
-	echo "$SUBMODULE_PATH has uncommitted changes. Resetting submodule state to tag before applying patches..."
-	git -C "$SUBMODULE_PATH" reset --hard
-	git -C "$SUBMODULE_PATH" clean -fd
+if git -C "$SUBMODULE_PATH" rev-parse HEAD >/dev/null 2>&1; then
+	if [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain 2>/dev/null)" ]]; then
+		echo "$SUBMODULE_PATH has uncommitted changes. Resetting submodule state..."
+		git -C "$SUBMODULE_PATH" reset --hard 2>/dev/null || true
+		git -C "$SUBMODULE_PATH" clean -fd 2>/dev/null || true
+	fi
 fi
 
 setopt null_glob
