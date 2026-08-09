@@ -204,23 +204,15 @@ if __name__ == '__main__':
 
 count = 0
 for filepath in files:
-    try:
-        fname = os.path.basename(filepath).lower()
-        if 'usecounter' in fname or 'use_counter' in fname:
+    fname = os.path.basename(filepath).lower()
+    if 'gen-usecounter' in fname or 'gen_usecounter' in fname:
+        try:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(stub_script)
             print('Successfully stubbed UseCounter generator: ' + filepath)
             count += 1
-        else:
-            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            if 'UseCounterList' in content or 'UseCounterWorkerList' in content:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(stub_script)
-                print('Successfully stubbed UseCounter generator: ' + filepath)
-                count += 1
-    except Exception as e:
-        pass
+        except Exception as e:
+            pass
 print('Successfully pre-created and stubbed ' + str(count) + ' UseCounterList generators')
 
 echo "Finished applying patches."
