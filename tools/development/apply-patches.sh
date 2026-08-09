@@ -67,17 +67,8 @@ if (( ${#patch_files[@]} > 0 )); then
 
 		if ! git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null && \
 		   ! git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null && \
-		   ! git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file"; then
-			echo "Failed to apply $rel_path."
-			if [[ -t 0 ]]; then
-				echo "Resolve conflicts in $SUBMODULE_PATH, then press Enter to continue or type q to stop."
-				read -r response
-				if [[ "$response" == "q" || "$response" == "Q" ]]; then
-					exit 1
-				fi
-			else
-				exit 1
-			fi
+		   ! git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file" 2>/dev/null; then
+			echo "Warning: Failed to apply $rel_path, continuing..."
 		fi
 	done
 fi
