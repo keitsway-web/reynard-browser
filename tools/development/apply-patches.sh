@@ -11,11 +11,17 @@ mkdir -p "$SUBMODULE_PATH"
 
 if [ -d "$PATCH_DIR" ]; then
     find "$PATCH_DIR" -name "*.patch" | while read -r patch_file; do
-        git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null || \
-        git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null || \
-        git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file" 2>/dev/null || true
+        git -C "$SUBMODULE_PATH" apply --whitespace=nowarn "$patch_file" 2>/dev/null ||         git -C "$SUBMODULE_PATH" apply --3way --whitespace=nowarn "$patch_file" 2>/dev/null ||         git -C "$SUBMODULE_PATH" apply --ignore-space-change --ignore-whitespace "$patch_file" 2>/dev/null || true
     done
 fi
+
+mkdir -p "$SUBMODULE_PATH/mobile/ios"
+cat << 'EOF' > "$SUBMODULE_PATH/mobile/ios/confvars.sh"
+MOZ_APP_NAME=reynard
+MOZ_APP_BASENAME=Reynard
+MOZ_APP_DISPLAYNAME="Reynard Browser"
+MOZ_BUILD_APP=mobile/ios
+EOF
 
 echo "Applying iOS SDK patch..."
 python3 -c "
@@ -37,7 +43,7 @@ for filepath in files:
 
 echo "Pre-creating UseCounterList headers..."
 python3 -c "
-import os, glob
+import os
 target_dirs = [
     '$SUBMODULE_PATH/obj-aarch64-apple-ios/dist/include/mozilla/dom',
     '$SUBMODULE_PATH/obj-aarch64-apple-ios/dom/base'
