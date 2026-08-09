@@ -29,7 +29,9 @@ done
 if [ -n "$out" ]; then
     mkdir -p "$(dirname "$out")"
     guard="cbindgen_$(basename "$out" | tr -c 'a-zA-Z0-9' '_')"
-    printf "#ifndef %s\n#define %s\n#endif\n" "$guard" "$guard" > "$out"
+    echo "#ifndef $guard" > "$out"
+    echo "#define $guard" >> "$out"
+    echo "#endif" >> "$out"
 fi
 exit 0
 EOF
@@ -73,7 +75,7 @@ IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 	echo "ac_add_options --disable-lto"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
-	echo "mk_add_options MOZ_MAKE_FLAGS="-j1""
+	echo "mk_add_options MOZ_MAKE_FLAGS='-j1'"
 	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
 } > "$FIREFOX_DIR/.mozconfig"
 
