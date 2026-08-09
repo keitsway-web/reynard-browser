@@ -26,21 +26,7 @@ if [[ ! -d "$SUBMODULE_PATH" ]]; then
 	exit 1
 fi
 
-if ! git -C "$SUBMODULE_PATH" rev-parse -q --verify "$RELEASE_TAG^{commit}" >/dev/null 2>&1; then
-	echo "Tag $RELEASE_TAG does not exist in $SUBMODULE_PATH."
-	echo "Run tools/development/update-gecko.sh to fetch and checkout the release tag."
-	exit 1
-fi
-
-RELEASE_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "$RELEASE_TAG^{commit}")"
-HEAD_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse HEAD)"
-
-if [[ "$HEAD_COMMIT" != "$RELEASE_COMMIT" ]]; then
-	CURRENT_TAG="$(git -C "$SUBMODULE_PATH" describe --tags --exact-match HEAD 2>/dev/null || echo "no-exact-tag")"
-	echo "Submodule HEAD ($HEAD_COMMIT, tag: $CURRENT_TAG) does not match engine/release.txt ($RELEASE_TAG -> $RELEASE_COMMIT)."
-	echo "Run tools/development/update-gecko.sh to sync the submodule commit before applying patches."
-	exit 1
-fi
+echo "Applying patches..."
 
 if [[ ! -d "$PATCH_DIR" ]]; then
 	echo "Missing patches directory: $PATCH_DIR."
