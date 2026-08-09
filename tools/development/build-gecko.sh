@@ -87,7 +87,9 @@ if [ -n "$IOS_SDK" ]; then
 fi
 export PYTHONUNBUFFERED=1
 chmod +x ./mach 2>/dev/null || true
-./mach build
+
+echo "Starting Gecko mach build..."
+python3 ./mach build || ./mach build
 
 if command -v sccache >/dev/null 2>&1; then
 	sccache --show-stats || true
