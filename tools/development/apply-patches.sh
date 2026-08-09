@@ -289,7 +289,7 @@ for mb in moz_build_files:
         
         if rem_headers:
             d_path = os.path.dirname(mb)
-            sort_h = sorted(list(set(rem_headers)))
+            sort_h = sorted(list(set(rem_headers)), key=lambda x: (x.lower(), x))
             for h in sort_h:
                 hp = os.path.join(d_path, h)
                 grd = 'mozilla_' + re.sub(r'[^a-zA-Z0-9]', '_', h)
