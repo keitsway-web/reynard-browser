@@ -88,9 +88,7 @@ SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || xcrun --sdk maco
 	echo "mk_add_options MOZ_PARALLEL_BUILD=1"
 } > "$FIREFOX_DIR/.mozconfig"
 
-if ! rustup target list | grep -q "^$TARGET (installed)"; then
-	rustup target add "$TARGET"
-fi
+rustup target add "$TARGET" 2>/dev/null || true
 
 cd "$FIREFOX_DIR"
 if [ -n "$SDK_PATH" ]; then
