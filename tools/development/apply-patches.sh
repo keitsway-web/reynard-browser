@@ -176,15 +176,28 @@ for d in target_dirs:
 files = glob.glob('$SUBMODULE_PATH/dom/base/*.py') + glob.glob('$SUBMODULE_PATH/dom/base/**/*.py', recursive=True)
 stub_script = '''import sys, os
 
-def main(*args, **kwargs):
-    return 0
+def write_stub(output):
+    if output:
+        if hasattr(output, 'write'):
+            output.write('#ifndef mozilla_dom_UseCounterList_h' + chr(10) + '#define mozilla_dom_UseCounterList_h' + chr(10) + '#endif' + chr(10))
+        elif isinstance(output, str):
+            os.makedirs(os.path.dirname(output), exist_ok=True)
+            with open(output, 'w') as f:
+                f.write('#ifndef mozilla_dom_UseCounterList_h' + chr(10) + '#define mozilla_dom_UseCounterList_h' + chr(10) + '#endif' + chr(10))
+
+def use_counter_list(output, *args, **kwargs):
+    write_stub(output)
+
+def use_counter_worker_list(output, *args, **kwargs):
+    write_stub(output)
+
+def main(output=None, *args, **kwargs):
+    write_stub(output)
 
 if __name__ == '__main__':
     for arg in sys.argv[1:]:
         if arg.endswith('.h'):
-            os.makedirs(os.path.dirname(arg), exist_ok=True)
-            with open(arg, 'w') as f:
-                f.write('#ifndef mozilla_dom_UseCounterList_h' + chr(10) + '#define mozilla_dom_UseCounterList_h' + chr(10) + '#endif' + chr(10))
+            write_stub(arg)
     sys.exit(0)
 '''
 
