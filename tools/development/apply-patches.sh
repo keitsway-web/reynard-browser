@@ -174,26 +174,27 @@ for d in target_dirs:
 
 # Stub python generator scripts so make invocation takes 0ms and 0MB
 files = glob.glob('$SUBMODULE_PATH/dom/base/*.py') + glob.glob('$SUBMODULE_PATH/dom/base/**/*.py', recursive=True)
+stub_script = '''import sys, os
+
+def main(*args, **kwargs):
+    return 0
+
+if __name__ == '__main__':
+    for arg in sys.argv[1:]:
+        if arg.endswith('.h'):
+            os.makedirs(os.path.dirname(arg), exist_ok=True)
+            with open(arg, 'w') as f:
+                f.write('#ifndef mozilla_dom_UseCounterList_h' + chr(10) + '#define mozilla_dom_UseCounterList_h' + chr(10) + '#endif' + chr(10))
+    sys.exit(0)
+'''
+
 for filepath in files:
     try:
         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
             content = f.read()
         if 'UseCounterList' in content or 'UseCounterWorkerList' in content or 'gen-usecounter' in filepath:
-            stub = '''import sys, os
-
-def main(*args, **kwargs):
-    return 0
-
-if __name__ == \"__main__\":
-    for arg in sys.argv[1:]:
-        if arg.endswith(\".h\"):
-            os.makedirs(os.path.dirname(arg), exist_ok=True)
-            with open(arg, \"w\") as f:
-                f.write(\"#ifndef mozilla_dom_UseCounterList_h\\n#define mozilla_dom_UseCounterList_h\\n#endif\\n\")
-    sys.exit(0)
-'''
             with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(stub)
+                f.write(stub_script)
             print('Successfully stubbed UseCounter generator: ' + filepath)
     except Exception as e:
         pass
