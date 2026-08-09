@@ -255,8 +255,8 @@ if os.path.exists(moz_build):
     
     final_lines.append('')
     final_lines.append('EXPORTS.mozilla.dom += [')
-    final_lines.append("    'UseCounterList.h',")
-    final_lines.append("    'UseCounterWorkerList.h',")
+    final_lines.append(\"    'UseCounterList.h',\")
+    final_lines.append(\"    'UseCounterWorkerList.h',\")
     final_lines.append(']')
     
     with open(moz_build, 'w', encoding='utf-8') as f:
