@@ -246,22 +246,22 @@ if os.path.exists(moz_build):
     with open(moz_build, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
     
-    new_content = content.replace(\"'!UseCounterList.h'\", \"'UseCounterList.h'\")
-    new_content = new_content.replace(\"'!UseCounterWorkerList.h'\", \"'UseCounterWorkerList.h'\")
-    new_content = new_content.replace('\"!UseCounterList.h\"', '\"UseCounterList.h\"')
-    new_content = new_content.replace('\"!UseCounterWorkerList.h\"', '\"UseCounterWorkerList.h\"')
-    
-    lines = new_content.splitlines()
+    lines = content.splitlines()
     final_lines = []
     for line in lines:
-        if ('UseCounterList' in line or 'UseCounterWorkerList' in line) and 'GENERATED_FILES' in line:
-            final_lines.append('# ' + line)
-        else:
-            final_lines.append(line)
+        if ('UseCounterList' in line or 'UseCounterWorkerList' in line) and ('GENERATED_FILES' in line or 'EXPORTS' in line or '!' in line):
+            continue
+        final_lines.append(line)
+    
+    final_lines.append('')
+    final_lines.append('EXPORTS.mozilla.dom += [')
+    final_lines.append("    'UseCounterList.h',")
+    final_lines.append("    'UseCounterWorkerList.h',")
+    final_lines.append(']')
     
     with open(moz_build, 'w', encoding='utf-8') as f:
-        f.write('\\n'.join(final_lines) + '\\n')
-    print('Successfully converted UseCounterList to static export in dom/base/moz.build')
+        f.write('\n'.join(final_lines) + '\n')
+    print('Successfully converted UseCounterList to sorted static export in dom/base/moz.build')
 "
 
 echo "Finished applying patches."
