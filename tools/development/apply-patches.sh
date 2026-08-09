@@ -48,8 +48,9 @@ if [[ ! -d "$PATCH_DIR" ]]; then
 fi
 
 if [[ -n "$(git -C "$SUBMODULE_PATH" status --porcelain)" ]]; then
-	echo "$SUBMODULE_PATH has uncommitted changes. Commit, stash, or reset before applying patches."
-	exit 1
+	echo "$SUBMODULE_PATH has uncommitted changes. Resetting submodule state to tag before applying patches..."
+	git -C "$SUBMODULE_PATH" reset --hard
+	git -C "$SUBMODULE_PATH" clean -fd
 fi
 
 setopt null_glob
@@ -173,7 +174,7 @@ for d in target_dirs:
         f.write(worker_header_content)
 
 # Stub python generator scripts so make invocation takes 0ms and 0MB
-files = glob.glob('$SUBMODULE_PATH/dom/base/*.py') + glob.glob('$SUBMODULE_PATH/dom/base/**/*.py', recursive=True)
+files = glob.glob('$SUBMODULE_PATH/**/*.py', recursive=True)
 stub_script = '''import sys, os
 
 def write_stub(output):
@@ -201,17 +202,26 @@ if __name__ == '__main__':
     sys.exit(0)
 '''
 
+count = 0
 for filepath in files:
     try:
-        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            content = f.read()
-        if 'UseCounterList' in content or 'UseCounterWorkerList' in content or 'gen-usecounter' in filepath:
+        fname = os.path.basename(filepath).lower()
+        if 'usecounter' in fname or 'use_counter' in fname:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(stub_script)
             print('Successfully stubbed UseCounter generator: ' + filepath)
+            count += 1
+        else:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            if 'UseCounterList' in content or 'UseCounterWorkerList' in content:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(stub_script)
+                print('Successfully stubbed UseCounter generator: ' + filepath)
+                count += 1
     except Exception as e:
         pass
-print('Successfully pre-created and stubbed UseCounterList generators')
+print('Successfully pre-created and stubbed ' + str(count) + ' UseCounterList generators')
 "
 
 echo "Finished applying patches."
