@@ -223,50 +223,11 @@ for filepath in files:
         pass
 print('Successfully pre-created and stubbed ' + str(count) + ' UseCounterList generators')
 
-# Convert UseCounterList.h in dom/base/moz.build to static exports
-base_dir = '$SUBMODULE_PATH/dom/base'
-h1 = os.path.join(base_dir, 'UseCounterList.h')
-h2 = os.path.join(base_dir, 'UseCounterWorkerList.h')
-header_content = '''#ifndef mozilla_dom_UseCounterList_h
-#define mozilla_dom_UseCounterList_h
-#endif
-'''
-worker_content = '''#ifndef mozilla_dom_UseCounterWorkerList_h
-#define mozilla_dom_UseCounterWorkerList_h
-#endif
-'''
-os.makedirs(base_dir, exist_ok=True)
-with open(h1, 'w') as f:
-    f.write(header_content)
-with open(h2, 'w') as f:
-    f.write(worker_content)
-
-moz_build = os.path.join(base_dir, 'moz.build')
-if os.path.exists(moz_build):
-    with open(moz_build, 'r', encoding='utf-8', errors='ignore') as f:
-        content = f.read()
-    
-    lines = content.splitlines()
-    final_lines = []
-    for line in lines:
-        if ('UseCounterList' in line or 'UseCounterWorkerList' in line) and ('GENERATED_FILES' in line or 'EXPORTS' in line or '!' in line):
-            continue
-        final_lines.append(line)
-    
-    final_lines.append('')
-    final_lines.append('EXPORTS.mozilla.dom += [')
-    final_lines.append(\"    'UseCounterList.h',\")
-    final_lines.append(\"    'UseCounterWorkerList.h',\")
-    final_lines.append(']')
-    
-    with open(moz_build, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(final_lines) + '\n')
-    print('Successfully converted UseCounterList to sorted static export in dom/base/moz.build')
-
-# Convert ALL generated headers (!*.h and GENERATED_FILES) across all moz.build files to static exports
+# Safely convert dynamic exports to static exports and sort all EXPORTS blocks in moz.build files
 import re
 moz_build_files = glob.glob('$SUBMODULE_PATH/**/moz.build', recursive=True)
 gen_count = 0
+
 for mb in moz_build_files:
     try:
         with open(mb, 'r', encoding='utf-8', errors='ignore') as f:
@@ -274,43 +235,54 @@ for mb in moz_build_files:
         if 'GENERATED_FILES' not in c and '!' not in c:
             continue
         
+        # 1. Strip GENERATED_FILES lines for headers
         m_lines = c.splitlines()
         f_lines = []
-        rem_headers = []
+        gen_h_list = []
         for l in m_lines:
-            # Match lines with GENERATED_FILES += ['Foo.h'] or '!Foo.h'
-            if 'GENERATED_FILES' in l or '!' in l:
-                m = re.findall(r'[\'\"]!?([a-zA-Z0-9_]+\.h)[\'\"]', l)
-                if m:
-                    for h in m:
-                        rem_headers.append(h)
-                    continue # skip dynamic rule line
+            if l.strip().startswith('GENERATED_FILES'):
+                h_matches = re.findall(r'[\'\"]!?([a-zA-Z0-9_]+\.h)[\'\"]', l)
+                for h in h_matches:
+                    gen_h_list.append(h)
+                continue # skip GENERATED_FILES assignment
             f_lines.append(l)
         
-        if rem_headers:
-            d_path = os.path.dirname(mb)
-            sort_h = sorted(list(set(rem_headers)), key=lambda x: (x.lower(), x))
-            for h in sort_h:
-                hp = os.path.join(d_path, h)
-                grd = 'mozilla_' + re.sub(r'[^a-zA-Z0-9]', '_', h)
-                if not os.path.exists(hp):
-                    with open(hp, 'w') as hf:
-                        hf.write('#ifndef ' + grd + '\\n#define ' + grd + '\\n#endif\\n')
-            
-            f_lines.append('')
-            f_lines.append('# Static exports for pre-created headers to prevent generator OOM')
-            f_lines.append('EXPORTS += [')
-            for h in sort_h:
-                f_lines.append(\"    '\" + h + \"',\")
-            f_lines.append(']')
-            
+        content = '\n'.join(f_lines)
+        
+        # Pre-create any discovered generated headers on disk
+        d_path = os.path.dirname(mb)
+        all_ex_matches = re.findall(r'[\'\"]!([a-zA-Z0-9_]+\.h)[\'\"]', content)
+        all_needed = set(gen_h_list + all_ex_matches)
+        for h in all_needed:
+            hp = os.path.join(d_path, h)
+            grd = 'mozilla_' + re.sub(r'[^a-zA-Z0-9]', '_', h)
+            if not os.path.exists(hp):
+                with open(hp, 'w') as hf:
+                    hf.write('#ifndef ' + grd + '\\n#define ' + grd + '\\n#endif\\n')
+        
+        # 2. Convert EXPORTS lists: strip ! and sort items alphabetically
+        def sort_block(m):
+            prefix = m.group(1)
+            body = m.group(2)
+            headers = re.findall(r'[\'\"]!?([a-zA-Z0-9_/\.-]+\.h)[\'\"]', body)
+            if not headers:
+                return m.group(0)
+            sorted_h = sorted(list(set(headers)), key=lambda x: (x.lower(), x))
+            res = prefix + ' [\\n'
+            for h in sorted_h:
+                res += \"    '\" + h + \"',\\n\"
+            res += ']'
+            return res
+
+        new_c = re.sub(r'(\bEXPORTS[a-zA-Z0-9_\.]*\s*\+=\s*)\[([^\]]+)\]', sort_block, content, flags=re.MULTILINE)
+        if new_c != c:
             with open(mb, 'w', encoding='utf-8') as f:
-                f.write('\\n'.join(f_lines) + '\\n')
-            print('Converted ' + str(len(sort_h)) + ' generated headers to static exports in: ' + mb)
-            gen_count += len(sort_h)
+                f.write(new_c + '\n')
+            print('Cleanly sorted & converted EXPORTS in: ' + mb)
+            gen_count += 1
     except Exception as e:
         pass
-print('Total generated headers converted to static exports tree-wide: ' + str(gen_count))
+print('Total moz.build files cleaned and converted: ' + str(gen_count))
 "
 
 echo "Finished applying patches."
