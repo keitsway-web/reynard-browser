@@ -222,6 +222,46 @@ for filepath in files:
     except Exception as e:
         pass
 print('Successfully pre-created and stubbed ' + str(count) + ' UseCounterList generators')
+
+# Convert UseCounterList.h in dom/base/moz.build to static exports
+base_dir = '$SUBMODULE_PATH/dom/base'
+h1 = os.path.join(base_dir, 'UseCounterList.h')
+h2 = os.path.join(base_dir, 'UseCounterWorkerList.h')
+header_content = '''#ifndef mozilla_dom_UseCounterList_h
+#define mozilla_dom_UseCounterList_h
+#endif
+'''
+worker_content = '''#ifndef mozilla_dom_UseCounterWorkerList_h
+#define mozilla_dom_UseCounterWorkerList_h
+#endif
+'''
+os.makedirs(base_dir, exist_ok=True)
+with open(h1, 'w') as f:
+    f.write(header_content)
+with open(h2, 'w') as f:
+    f.write(worker_content)
+
+moz_build = os.path.join(base_dir, 'moz.build')
+if os.path.exists(moz_build):
+    with open(moz_build, 'r', encoding='utf-8', errors='ignore') as f:
+        content = f.read()
+    
+    new_content = content.replace(\"'!UseCounterList.h'\", \"'UseCounterList.h'\")
+    new_content = new_content.replace(\"'!UseCounterWorkerList.h'\", \"'UseCounterWorkerList.h'\")
+    new_content = new_content.replace('\"!UseCounterList.h\"', '\"UseCounterList.h\"')
+    new_content = new_content.replace('\"!UseCounterWorkerList.h\"', '\"UseCounterWorkerList.h\"')
+    
+    lines = new_content.splitlines()
+    final_lines = []
+    for line in lines:
+        if ('UseCounterList' in line or 'UseCounterWorkerList' in line) and 'GENERATED_FILES' in line:
+            final_lines.append('# ' + line)
+        else:
+            final_lines.append(line)
+    
+    with open(moz_build, 'w', encoding='utf-8') as f:
+        f.write('\\n'.join(final_lines) + '\\n')
+    print('Successfully converted UseCounterList to static export in dom/base/moz.build')
 "
 
 echo "Finished applying patches."
