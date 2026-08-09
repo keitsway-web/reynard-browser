@@ -262,6 +262,53 @@ if os.path.exists(moz_build):
     with open(moz_build, 'w', encoding='utf-8') as f:
         f.write('\n'.join(final_lines) + '\n')
     print('Successfully converted UseCounterList to sorted static export in dom/base/moz.build')
+
+# Convert all FFI generated headers (_ffi_generated.h) across moz.build files to static exports
+import re
+moz_build_files = glob.glob('$SUBMODULE_PATH/**/moz.build', recursive=True)
+ffi_count = 0
+for mb in moz_build_files:
+    try:
+        with open(mb, 'r', encoding='utf-8', errors='ignore') as f:
+            c = f.read()
+        if '_ffi_generated.h' not in c:
+            continue
+        
+        m_lines = c.splitlines()
+        f_lines = []
+        rem_headers = []
+        for l in m_lines:
+            if '_ffi_generated.h' in l:
+                m = re.search(r'[\'\"]!?([a-zA-Z0-9_]+\.h)[\'\"]', l)
+                if m:
+                    rem_headers.append(m.group(1))
+                if 'GENERATED_FILES' in l or '!' in l:
+                    continue
+            f_lines.append(l)
+        
+        if rem_headers:
+            d_path = os.path.dirname(mb)
+            sort_h = sorted(list(set(rem_headers)))
+            for h in sort_h:
+                hp = os.path.join(d_path, h)
+                grd = 'mozilla_' + re.sub(r'[^a-zA-Z0-9]', '_', h)
+                if not os.path.exists(hp):
+                    with open(hp, 'w') as hf:
+                        hf.write('#ifndef ' + grd + '\\n#define ' + grd + '\\n#endif\\n')
+            
+            f_lines.append('')
+            f_lines.append('EXPORTS += [')
+            for h in sort_h:
+                f_lines.append(\"    '\" + h + \"',\")
+            f_lines.append(']')
+            
+            with open(mb, 'w', encoding='utf-8') as f:
+                f.write('\\n'.join(f_lines) + '\\n')
+            print('Converted ' + str(len(sort_h)) + ' FFI headers to static exports in: ' + mb)
+            ffi_count += len(sort_h)
+    except Exception as e:
+        pass
+print('Total FFI headers converted to static exports: ' + str(ffi_count))
 "
 
 echo "Finished applying patches."
