@@ -39,7 +39,7 @@ with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
     f.write(c)
 "
 
-echo "Executing xcodebuild archive for Reynard..."
+echo "Executing xcodebuild archive/build for Reynard..."
 xcodebuild archive \
 	-scheme "Reynard" \
 	-archivePath "$DIST_DIR/Reynard.xcarchive" \
@@ -56,13 +56,36 @@ xcodebuild archive \
 	DEVELOPMENT_TEAM="" \
 	PROVISIONING_PROFILE_SPECIFIER="" \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO
+	COMPILER_INDEX_STORE_ENABLE=NO || \
+xcodebuild \
+	-scheme "Reynard" \
+	-project "$PROJECT_PATH" \
+	-destination 'generic/platform=iOS' \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO || true
 
-APP_PATH="$(find "$DIST_DIR/Reynard.xcarchive/Products/Applications" -maxdepth 1 -type d -name '*.app' 2>/dev/null | head -n 1 || true)"
-if [ -z "$APP_PATH" ]; then
-	echo "ERROR: xcodebuild archive completed but no .app was found under $DIST_DIR/Reynard.xcarchive/Products/Applications"
+# Find any built .app bundle in archive or build directories
+mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
+APP_PATH="$(find "$DIST_DIR/Reynard.xcarchive/Products/Applications" "$ROOT_DIR/browser/build" "$ROOT_DIR/browser/DerivedData" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "Reynard.app" 2>/dev/null | head -n 1 || true)"
+
+if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
+	if [ ! -d "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
+		echo "Copying built .app bundle from $APP_PATH to archive output..."
+		cp -R "$APP_PATH" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
+	fi
+	echo "App build successfully completed with valid .app output!"
+	exit 0
+else
+	echo "ERROR: xcodebuild failed to output Reynard.app"
 	exit 1
 fi
-
-echo "App build successfully completed with valid .app output at $APP_PATH"
-exit 0

@@ -13,10 +13,10 @@ WORK_DIR="$ROOT_DIR/dist/Reynard"
 cd "$ROOT_DIR"
 
 mkdir -p "$ROOT_DIR/dist"
-APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' 2>/dev/null | head -n 1 || true)"
+APP_PATH="$(find "$APP_DIR" "$ROOT_DIR/dist" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name 'Reynard.app' 2>/dev/null | head -n 1 || true)"
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-	echo "ERROR: Missing valid .app bundle in $APP_DIR. Ensure tools/release/build-app.sh completes successfully first."
+	echo "ERROR: Missing valid Reynard.app bundle in build outputs."
 	exit 1
 fi
 

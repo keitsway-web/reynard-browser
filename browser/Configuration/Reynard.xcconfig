@@ -9,7 +9,9 @@ ENABLE_BITCODE = NO
 
 GECKO_DIST = $(SRCROOT)/../engine/firefox/obj-aarch64-apple-ios/dist
 
-HEADER_SEARCH_PATHS = $(inherited) $(GECKO_DIST)/include $(GECKO_DIST)/include/GeckoView $(SRCROOT)/GeckoView $(SRCROOT)/GeckoView/** $(SRCROOT)/Reynard $(SRCROOT)/Reynard/** $(SRCROOT)/Helper $(SRCROOT)/Helper/**
+HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT) $(SRCROOT)/GeckoView $(SRCROOT)/GeckoView/** $(SRCROOT)/Reynard $(SRCROOT)/Reynard/** $(SRCROOT)/Helper $(SRCROOT)/Helper/** $(GECKO_DIST)/include $(GECKO_DIST)/include/GeckoView
+USER_HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT) $(SRCROOT)/**
+SWIFT_INCLUDE_PATHS = $(inherited) $(SRCROOT) $(GECKO_DIST)/include
 LIBRARY_SEARCH_PATHS = $(inherited) $(GECKO_DIST)/bin $(GECKO_DIST)/lib
 FRAMEWORK_SEARCH_PATHS = $(inherited) $(BUILT_PRODUCTS_DIR)
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @loader_path/Frameworks
