@@ -11,6 +11,23 @@ XCCONFIG_PATH="$ROOT_DIR/browser/Configuration/Reynard.xcconfig"
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
+mkdir -p "$ROOT_DIR/browser/GeckoView/GeckoView"
+if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/GeckoViewSwiftSupport.h" ]; then
+	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/GeckoView/GeckoViewSwiftSupport.h"
+#ifndef GeckoViewSwiftSupport_h
+#define GeckoViewSwiftSupport_h
+#endif
+EOF
+fi
+
+if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h" ]; then
+	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h"
+#ifndef IOSBootstrap_h
+#define IOSBootstrap_h
+#endif
+EOF
+fi
+
 cp "$XCCONFIG_PATH" "$DIST_DIR/Reynard.xcconfig"
 
 BUILD_SHA=$(git -C "$ROOT_DIR" rev-parse HEAD | cut -c1-7)
