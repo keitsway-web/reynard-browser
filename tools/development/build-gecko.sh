@@ -52,7 +52,7 @@ export MOZ_PARALLEL_BUILD="$JOBS"
 IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 
 {
-	echo "ac_add_options --enable-application=mobile/ios"
+	echo "ac_add_options --enable-application=js"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
 	if command -v sccache >/dev/null 2>&1; then
