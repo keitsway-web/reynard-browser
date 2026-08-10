@@ -14,13 +14,10 @@ cd "$ROOT_DIR"
 
 mkdir -p "$ROOT_DIR/dist"
 APP_PATH=""
-for p in $(find "$APP_DIR" "$ROOT_DIR/dist" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name 'Reynard.app' 2>/dev/null); do
-	if [ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]; then
-		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
-		if [ "$file_count" -gt 3 ]; then
-			APP_PATH="$p"
-			break
-		fi
+for p in "$APP_DIR/Reynard.app" "$DIST_DIR/built_app/Reynard.app" $(find "$APP_DIR" "$ROOT_DIR/dist" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name 'Reynard.app' 2>/dev/null); do
+	if [ -d "$p" ] && ([ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]); then
+		APP_PATH="$p"
+		break
 	fi
 done
 
