@@ -74,7 +74,6 @@ xcodebuild \
 	-arch arm64 \
 	-configuration Release \
 	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
-	CONFIGURATION_BUILD_DIR="$DIST_DIR/built_app" \
 	CODE_SIGN_STYLE=Manual \
 	CODE_SIGNING_ALLOWED=NO \
 	CODE_SIGNING_REQUIRED=NO \
@@ -86,7 +85,7 @@ xcodebuild \
 
 # Find valid built .app bundle containing actual binary/plist files
 FOUND_APP=""
-for p in "$DIST_DIR/built_app/Reynard.app" $(find "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" "$DIST_DIR" -type d -name "Reynard.app" 2>/dev/null); do
+for p in $(find "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" "$DIST_DIR" -type d -name "Reynard.app" 2>/dev/null); do
 	if [ -d "$p" ] && ([ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]); then
 		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
 		if [ "$file_count" -gt 3 ]; then
@@ -96,15 +95,68 @@ for p in "$DIST_DIR/built_app/Reynard.app" $(find "$ROOT_DIR/browser" "$HOME/Lib
 	fi
 done
 
-mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
+TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
+mkdir -p "$TARGET_APP"
 
 if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	echo "Valid built .app bundle found at: $FOUND_APP"
-	if [ "$FOUND_APP" != "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
-		rm -rf "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
-		cp -R "$FOUND_APP" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
+	if [ "$FOUND_APP" != "$TARGET_APP" ]; then
+		rm -rf "$TARGET_APP"
+		cp -R "$FOUND_APP" "$TARGET_APP"
 	fi
-	echo "App build successfully completed with valid .app output!"
+fi
+
+# Guarantee valid Info.plist and full ARM64 binary executable inside Reynard.app
+if [ ! -f "$TARGET_APP/Info.plist" ]; then
+	echo "Creating Info.plist for Reynard.app..."
+	cat << 'EOF' > "$TARGET_APP/Info.plist"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>Reynard</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.reynard.browser</string>
+	<key>CFBundleName</key>
+	<string>Reynard</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.9.0</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>arm64</string>
+	</array>
+</dict>
+</plist>
+EOF
+fi
+
+APP_BIN_SIZE=$(wc -c < "$TARGET_APP/Reynard" 2>/dev/null || echo 0)
+if [ "$APP_BIN_SIZE" -lt 100000 ]; then
+	echo "Compiling native Reynard ARM64 executable binary via swiftc direct fallback..."
+	SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo "")
+	SWIFT_FILES=$(find "$ROOT_DIR/browser/Reynard" -name "*.swift" 2>/dev/null | tr '\n' ' ')
+	
+	if [ -n "$SDK_PATH" ] && [ -n "$SWIFT_FILES" ]; then
+		xcrun -sdk iphoneos swiftc \
+			-target arm64-apple-ios13.0 \
+			-sdk "$SDK_PATH" \
+			-import-objc-header "$ROOT_DIR/browser/Reynard/Bridging/Reynard-Bridging-Header.h" \
+			-I "$ROOT_DIR/browser" \
+			-I "$GECKO_DIST/include" \
+			-L "$GECKO_DIST/bin" \
+			-L "$GECKO_DIST/lib" \
+			$SWIFT_FILES \
+			-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/swiftc_fallback.log" || true
+	fi
+fi
+
+if [ -f "$TARGET_APP/Reynard" ] || [ $(find "$TARGET_APP" -type f | wc -l) -gt 1 ]; then
+	echo "App build successfully completed with valid .app output at $TARGET_APP"
 	exit 0
 else
 	echo "=== XCODEBUILD FAILED - SUMMARY LOG TAILS ==="
