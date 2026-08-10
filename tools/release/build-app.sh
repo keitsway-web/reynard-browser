@@ -100,16 +100,27 @@ xcodebuild \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
 	COMPILER_INDEX_STORE_ENABLE=NO >> "$DIST_DIR/xcodebuild.log" 2>&1 || true
 
-# Find any built .app bundle in archive or build directories
-mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
-APP_PATH="$(find "$DIST_DIR/Reynard.xcarchive/Products/Applications" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "Reynard.app" 2>/dev/null | head -n 1 || true)"
-
-if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
-	if [ ! -d "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
-		echo "Copying built .app bundle from $APP_PATH to archive output..."
-		cp -R "$APP_PATH" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
+# Find valid built .app bundle containing actual binary/plist files
+FOUND_APP=""
+for p in $(find "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" "$DIST_DIR" -type d -name "Reynard.app" 2>/dev/null); do
+	if [ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]; then
+		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
+		if [ "$file_count" -gt 3 ]; then
+			FOUND_APP="$p"
+			break
+		fi
 	fi
-	echo "App build successfully completed with valid .app output at $APP_PATH"
+done
+
+mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
+
+if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
+	echo "Valid built .app bundle found at: $FOUND_APP"
+	if [ "$FOUND_APP" != "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
+		rm -rf "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
+		cp -R "$FOUND_APP" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
+	fi
+	echo "App build successfully completed with valid .app output!"
 	exit 0
 else
 	echo "=== XCODEBUILD FAILED - LOG TAIL ==="
