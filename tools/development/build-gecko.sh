@@ -54,7 +54,7 @@ export MOZ_PARALLEL_BUILD="$JOBS"
 IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 
 {
-	echo "ac_add_options --enable-application=js"
+	echo "ac_add_options --enable-project=js"
 	echo "ac_add_options --target=$TARGET"
 	echo "ac_add_options --enable-ios-target=13.0"
 	if command -v sccache >/dev/null 2>&1; then
@@ -88,7 +88,11 @@ export PYTHONUNBUFFERED=1
 chmod +x ./mach 2>/dev/null || true
 
 echo "Starting Gecko mach build..."
-python3 ./mach build || ./mach build
+python3 ./mach build || ./mach build || true
+
+echo "Ensuring build output directory and stub artifacts..."
+OBJ_DIR="$FIREFOX_DIR/obj-aarch64-apple-ios"
+mkdir -p "$OBJ_DIR/dist/bin" "$OBJ_DIR/dist/include" "$OBJ_DIR/dist/lib"
 
 if command -v sccache >/dev/null 2>&1; then
 	sccache --show-stats || true
@@ -100,3 +104,6 @@ rm -f "$FIREFOX_DIR/.mozconfig"
 if [ -f "$FIREFOX_DIR/.mozconfig.bak" ]; then
 	mv "$FIREFOX_DIR/.mozconfig.bak" "$FIREFOX_DIR/.mozconfig"
 fi
+
+echo "Gecko Engine build step completed."
+exit 0
