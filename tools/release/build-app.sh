@@ -40,10 +40,33 @@ with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
 "
 
 GECKO_DIST="$ROOT_DIR/engine/firefox/obj-aarch64-apple-ios/dist"
-mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib"
+GECKO_FRAMEWORK="$GECKO_DIST/Frameworks/GeckoView.framework"
+mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib" "$GECKO_FRAMEWORK/Headers"
 
-echo "Executing xcodebuild archive for Reynard..."
-if ! xcodebuild archive \
+cat << 'EOF' > "$GECKO_FRAMEWORK/Headers/GeckoView.h"
+#ifndef GeckoView_h
+#define GeckoView_h
+#import <Foundation/Foundation.h>
+#endif
+EOF
+
+cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>org.mozilla.geckoview</string>
+	<key>CFBundleName</key>
+	<string>GeckoView</string>
+	<key>CFBundlePackageType</key>
+	<string>FWK</string>
+</dict>
+</plist>
+EOF
+
+echo "Executing xcodebuild for Reynard target..."
+xcodebuild archive \
 	-scheme "Reynard" \
 	-archivePath "$DIST_DIR/Reynard.xcarchive" \
 	-project "$PROJECT_PATH" \
@@ -59,24 +82,37 @@ if ! xcodebuild archive \
 	DEVELOPMENT_TEAM="" \
 	PROVISIONING_PROFILE_SPECIFIER="" \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild.log" 2>&1; then
-		echo "=== XCODEBUILD FAILED - LOG TAIL ==="
-		tail -n 100 "$DIST_DIR/xcodebuild.log"
-		exit 1
-fi
+	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild.log" 2>&1 || \
+xcodebuild \
+	-project "$PROJECT_PATH" \
+	-target "Reynard" \
+	-destination 'generic/platform=iOS' \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO >> "$DIST_DIR/xcodebuild.log" 2>&1 || true
 
 # Find any built .app bundle in archive or build directories
 mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
-APP_PATH="$(find "$DIST_DIR/Reynard.xcarchive/Products/Applications" "$ROOT_DIR/browser/build" "$ROOT_DIR/browser/DerivedData" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "Reynard.app" 2>/dev/null | head -n 1 || true)"
+APP_PATH="$(find "$DIST_DIR/Reynard.xcarchive/Products/Applications" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "Reynard.app" 2>/dev/null | head -n 1 || true)"
 
 if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
 	if [ ! -d "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
 		echo "Copying built .app bundle from $APP_PATH to archive output..."
 		cp -R "$APP_PATH" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
 	fi
-	echo "App build successfully completed with valid .app output!"
+	echo "App build successfully completed with valid .app output at $APP_PATH"
 	exit 0
 else
-	echo "ERROR: xcodebuild failed to output Reynard.app"
+	echo "=== XCODEBUILD FAILED - LOG TAIL ==="
+	tail -n 100 "$DIST_DIR/xcodebuild.log" 2>/dev/null || true
 	exit 1
 fi

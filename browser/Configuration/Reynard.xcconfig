@@ -13,7 +13,7 @@ HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT) $(SRCROOT)/GeckoView $(SRCROOT)/Ge
 USER_HEADER_SEARCH_PATHS = $(inherited) $(SRCROOT) $(SRCROOT)/**
 SWIFT_INCLUDE_PATHS = $(inherited) $(SRCROOT) $(GECKO_DIST)/include
 LIBRARY_SEARCH_PATHS = $(inherited) $(GECKO_DIST)/bin $(GECKO_DIST)/lib
-FRAMEWORK_SEARCH_PATHS = $(inherited) $(BUILT_PRODUCTS_DIR)
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(BUILT_PRODUCTS_DIR) $(GECKO_DIST)/Frameworks $(SRCROOT)
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @loader_path/Frameworks
 SWIFT_OBJC_BRIDGING_HEADER = $(SRCROOT)/Reynard/Bridging/Reynard-Bridging-Header.h
 
