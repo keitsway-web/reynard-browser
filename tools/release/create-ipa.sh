@@ -13,28 +13,11 @@ WORK_DIR="$ROOT_DIR/dist/Reynard"
 cd "$ROOT_DIR"
 
 mkdir -p "$ROOT_DIR/dist"
-APP_PATH="$(find "$APP_DIR" "$ROOT_DIR/dist" "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name '*.app' 2>/dev/null | head -n 1 || true)"
+APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' 2>/dev/null | head -n 1 || true)"
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-	echo "No .app bundle found. Creating container for TrollStore packaging..."
-	APP_PATH="$ROOT_DIR/dist/Reynard.app"
-	mkdir -p "$APP_PATH"
-	cat << 'EOF' > "$APP_PATH/Info.plist"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleIdentifier</key>
-	<string>com.minh-ton.Reynard</string>
-	<key>CFBundleName</key>
-	<string>Reynard</string>
-	<key>CFBundleExecutable</key>
-	<string>Reynard</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-</dict>
-</plist>
-EOF
+	echo "ERROR: Missing valid .app bundle in $APP_DIR. Ensure tools/release/build-app.sh completes successfully first."
+	exit 1
 fi
 
 # Bundle identifier updates
