@@ -39,8 +39,11 @@ with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
     f.write(c)
 "
 
-echo "Executing xcodebuild archive/build for Reynard..."
-xcodebuild archive \
+GECKO_DIST="$ROOT_DIR/engine/firefox/obj-aarch64-apple-ios/dist"
+mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib"
+
+echo "Executing xcodebuild archive for Reynard..."
+if ! xcodebuild archive \
 	-scheme "Reynard" \
 	-archivePath "$DIST_DIR/Reynard.xcarchive" \
 	-project "$PROJECT_PATH" \
@@ -56,23 +59,11 @@ xcodebuild archive \
 	DEVELOPMENT_TEAM="" \
 	PROVISIONING_PROFILE_SPECIFIER="" \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO || \
-xcodebuild \
-	-scheme "Reynard" \
-	-project "$PROJECT_PATH" \
-	-destination 'generic/platform=iOS' \
-	-sdk iphoneos \
-	-arch arm64 \
-	-configuration Release \
-	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
-	CODE_SIGN_STYLE=Manual \
-	CODE_SIGNING_ALLOWED=NO \
-	CODE_SIGNING_REQUIRED=NO \
-	CODE_SIGN_IDENTITY="" \
-	DEVELOPMENT_TEAM="" \
-	PROVISIONING_PROFILE_SPECIFIER="" \
-	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO || true
+	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild.log" 2>&1; then
+		echo "=== XCODEBUILD FAILED - LOG TAIL ==="
+		tail -n 100 "$DIST_DIR/xcodebuild.log"
+		exit 1
+fi
 
 # Find any built .app bundle in archive or build directories
 mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
