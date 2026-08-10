@@ -65,32 +65,16 @@ cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
 </plist>
 EOF
 
-echo "Executing xcodebuild for GeckoView and Reynard targets..."
+echo "Executing xcodebuild for Reynard target..."
 xcodebuild \
 	-project "$PROJECT_PATH" \
-	-target "GeckoView" \
+	-scheme "Reynard" \
 	-destination 'generic/platform=iOS' \
 	-sdk iphoneos \
 	-arch arm64 \
 	-configuration Release \
 	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
-	CODE_SIGN_STYLE=Manual \
-	CODE_SIGNING_ALLOWED=NO \
-	CODE_SIGNING_REQUIRED=NO \
-	CODE_SIGN_IDENTITY="" \
-	DEVELOPMENT_TEAM="" \
-	PROVISIONING_PROFILE_SPECIFIER="" \
-	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
-
-xcodebuild \
-	-project "$PROJECT_PATH" \
-	-target "Reynard" \
-	-destination 'generic/platform=iOS' \
-	-sdk iphoneos \
-	-arch arm64 \
-	-configuration Release \
-	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CONFIGURATION_BUILD_DIR="$DIST_DIR/built_app" \
 	CODE_SIGN_STYLE=Manual \
 	CODE_SIGNING_ALLOWED=NO \
 	CODE_SIGNING_REQUIRED=NO \
@@ -100,28 +84,10 @@ xcodebuild \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
 
-xcodebuild archive \
-	-scheme "Reynard" \
-	-archivePath "$DIST_DIR/Reynard.xcarchive" \
-	-project "$PROJECT_PATH" \
-	-destination 'generic/platform=iOS' \
-	-sdk iphoneos \
-	-arch arm64 \
-	-configuration Release \
-	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
-	CODE_SIGN_STYLE=Manual \
-	CODE_SIGNING_ALLOWED=NO \
-	CODE_SIGNING_REQUIRED=NO \
-	CODE_SIGN_IDENTITY="" \
-	DEVELOPMENT_TEAM="" \
-	PROVISIONING_PROFILE_SPECIFIER="" \
-	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_archive.log" || true
-
 # Find valid built .app bundle containing actual binary/plist files
 FOUND_APP=""
-for p in $(find "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" "$DIST_DIR" -type d -name "Reynard.app" 2>/dev/null); do
-	if [ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]; then
+for p in "$DIST_DIR/built_app/Reynard.app" $(find "$ROOT_DIR/browser" "$HOME/Library/Developer/Xcode/DerivedData" "$DIST_DIR" -type d -name "Reynard.app" 2>/dev/null); do
+	if [ -d "$p" ] && ([ -f "$p/Info.plist" ] || [ -f "$p/Reynard" ]); then
 		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
 		if [ "$file_count" -gt 3 ]; then
 			FOUND_APP="$p"
@@ -142,9 +108,6 @@ if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	exit 0
 else
 	echo "=== XCODEBUILD FAILED - SUMMARY LOG TAILS ==="
-	echo "--- Reynard Target Log Tail ---"
-	tail -n 60 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
-	echo "--- Archive Log Tail ---"
-	tail -n 60 "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
+	tail -n 100 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
 	exit 1
 fi
