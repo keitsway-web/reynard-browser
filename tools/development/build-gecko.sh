@@ -14,8 +14,9 @@ fi
 
 export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/lld/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-mkdir -p "$HOME/.cargo/bin"
-cat << 'EOF' > "$HOME/.cargo/bin/cbindgen"
+if ! command -v cbindgen >/dev/null 2>&1; then
+	mkdir -p "$HOME/.cargo/bin"
+	cat << 'EOF' > "$HOME/.cargo/bin/cbindgen"
 #!/bin/sh
 out=""
 prev=""
@@ -35,7 +36,8 @@ if [ -n "$out" ]; then
 fi
 exit 0
 EOF
-chmod +x "$HOME/.cargo/bin/cbindgen"
+	chmod +x "$HOME/.cargo/bin/cbindgen"
+fi
 
 export CCACHE_DIR="$HOME/.ccache"
 export CCACHE_MAXSIZE="10G"
@@ -60,9 +62,6 @@ IOS_SDK="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || true)"
 		export RUSTC_WRAPPER="sccache"
 	elif command -v ccache >/dev/null 2>&1; then
 		echo "ac_add_options --with-ccache=ccache"
-	fi
-	if command -v lld >/dev/null 2>&1 || command -v ld.lld >/dev/null 2>&1; then
-		echo "ac_add_options --enable-linker=lld"
 	fi
 	echo "ac_add_options --without-wasm-sandboxed-libraries"
 	echo "ac_add_options --disable-accessibility"
