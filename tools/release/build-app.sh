@@ -65,7 +65,41 @@ cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
 </plist>
 EOF
 
-echo "Executing xcodebuild for Reynard target..."
+echo "Executing xcodebuild for GeckoView and Reynard targets..."
+xcodebuild \
+	-project "$PROJECT_PATH" \
+	-target "GeckoView" \
+	-destination 'generic/platform=iOS' \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
+
+xcodebuild \
+	-project "$PROJECT_PATH" \
+	-target "Reynard" \
+	-destination 'generic/platform=iOS' \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
+
 xcodebuild archive \
 	-scheme "Reynard" \
 	-archivePath "$DIST_DIR/Reynard.xcarchive" \
@@ -82,23 +116,7 @@ xcodebuild archive \
 	DEVELOPMENT_TEAM="" \
 	PROVISIONING_PROFILE_SPECIFIER="" \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild.log" 2>&1 || \
-xcodebuild \
-	-project "$PROJECT_PATH" \
-	-target "Reynard" \
-	-destination 'generic/platform=iOS' \
-	-sdk iphoneos \
-	-arch arm64 \
-	-configuration Release \
-	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
-	CODE_SIGN_STYLE=Manual \
-	CODE_SIGNING_ALLOWED=NO \
-	CODE_SIGNING_REQUIRED=NO \
-	CODE_SIGN_IDENTITY="" \
-	DEVELOPMENT_TEAM="" \
-	PROVISIONING_PROFILE_SPECIFIER="" \
-	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO >> "$DIST_DIR/xcodebuild.log" 2>&1 || true
+	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_archive.log" || true
 
 # Find valid built .app bundle containing actual binary/plist files
 FOUND_APP=""
@@ -123,7 +141,10 @@ if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	echo "App build successfully completed with valid .app output!"
 	exit 0
 else
-	echo "=== XCODEBUILD FAILED - LOG TAIL ==="
-	tail -n 100 "$DIST_DIR/xcodebuild.log" 2>/dev/null || true
+	echo "=== XCODEBUILD FAILED - SUMMARY LOG TAILS ==="
+	echo "--- Reynard Target Log Tail ---"
+	tail -n 60 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
+	echo "--- Archive Log Tail ---"
+	tail -n 60 "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
 	exit 1
 fi
