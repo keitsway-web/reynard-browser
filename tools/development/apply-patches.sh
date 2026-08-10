@@ -23,6 +23,13 @@ MOZ_APP_DISPLAYNAME="Reynard Browser"
 MOZ_BUILD_APP=mobile/ios
 EOF
 
+cat << 'EOF' > "$SUBMODULE_PATH/mobile/ios/moz.build"
+# iOS application configuration for Reynard
+CONFIGURE_SUBST_FILES += [
+    'confvars.sh',
+]
+EOF
+
 echo "Applying iOS SDK patch..."
 python3 -c "
 import glob
