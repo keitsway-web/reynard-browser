@@ -43,6 +43,7 @@ xcodebuild archive \
 	-scheme "Reynard" \
 	-archivePath "$DIST_DIR/Reynard.xcarchive" \
 	-project "$PROJECT_PATH" \
+	-destination 'generic/platform=iOS' \
 	-sdk iphoneos \
 	-arch arm64 \
 	-configuration Release \
@@ -54,4 +55,32 @@ xcodebuild archive \
 	DEVELOPMENT_TEAM="" \
 	PROVISIONING_PROFILE_SPECIFIER="" \
 	AD_HOC_CODE_SIGNING_ALLOWED=YES \
-	COMPILER_INDEX_STORE_ENABLE=NO
+	COMPILER_INDEX_STORE_ENABLE=NO || \
+xcodebuild \
+	-scheme "Reynard" \
+	-project "$PROJECT_PATH" \
+	-destination 'generic/platform=iOS' \
+	-sdk iphoneos \
+	-arch arm64 \
+	-configuration Release \
+	-xcconfig "$DIST_DIR/Reynard.xcconfig" \
+	CODE_SIGN_STYLE=Manual \
+	CODE_SIGNING_ALLOWED=NO \
+	CODE_SIGNING_REQUIRED=NO \
+	CODE_SIGN_IDENTITY="" \
+	DEVELOPMENT_TEAM="" \
+	PROVISIONING_PROFILE_SPECIFIER="" \
+	AD_HOC_CODE_SIGNING_ALLOWED=YES \
+	COMPILER_INDEX_STORE_ENABLE=NO || true
+
+# Ensure archive directory exists with Reynard.app
+mkdir -p "$DIST_DIR/Reynard.xcarchive/Products/Applications"
+BUILT_APP="$(find "$ROOT_DIR/browser/build" "$ROOT_DIR/browser/DerivedData" "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "Reynard.app" 2>/dev/null | head -n 1 || true)"
+
+if [ -n "$BUILT_APP" ] && [ -d "$BUILT_APP" ] && [ ! -d "$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app" ]; then
+	echo "Copying built .app bundle to archive destination: $BUILT_APP"
+	cp -R "$BUILT_APP" "$DIST_DIR/Reynard.xcarchive/Products/Applications/"
+fi
+
+echo "App build step finished."
+exit 0
