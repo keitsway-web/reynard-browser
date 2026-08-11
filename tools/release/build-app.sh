@@ -72,7 +72,10 @@ cd "$BROWSER_DIR"
 echo "Building GeckoView framework..."
 xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
 
-echo "Building Reynard application scheme..."
+echo "Building Reynard main application target..."
+xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
+
+echo "Executing Reynard scheme archive..."
 xcodebuild archive 	-project "$PROJECT_PATH" 	-scheme "Reynard" 	-archivePath "$DIST_DIR/Reynard.xcarchive" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_archive.log" || true
 
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
@@ -103,7 +106,9 @@ if [ -f "$TARGET_APP/Reynard" ]; then
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
+	echo "--- Reynard Target Log Tail ---"
+	tail -n 60 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
 	echo "--- Archive Log Tail ---"
-	tail -n 100 "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
+	tail -n 60 "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
 	exit 1
 fi
