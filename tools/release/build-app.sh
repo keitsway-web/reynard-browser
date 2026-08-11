@@ -81,10 +81,10 @@ xcodebuild archive 	-project "$PROJECT_PATH" 	-scheme "Reynard" 	-archivePath "$
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
 FOUND_APP=""
-for p in "$TARGET_APP" $(find "$HOME/Library/Developer/Xcode/DerivedData" "$ROOT_DIR" -type d -name "Reynard.app" 2>/dev/null); do
-	if [ -d "$p" ] && [ -f "$p/Info.plist" ]; then
+for p in $(find "$DIST_DIR" "$HOME/Library/Developer/Xcode/DerivedData" "$ROOT_DIR" -type d -name "Reynard.app" 2>/dev/null); do
+	if [ -d "$p" ] && ([ -f "$p/Reynard" ] || [ -f "$p/Info.plist" ]); then
 		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
-		if [ "$file_count" -gt 3 ]; then
+		if [ "$file_count" -gt 2 ]; then
 			FOUND_APP="$p"
 			break
 		fi
@@ -106,9 +106,9 @@ if [ -f "$TARGET_APP/Reynard" ]; then
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
-	echo "--- Reynard Target Log Tail ---"
-	tail -n 60 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
-	echo "--- Archive Log Tail ---"
-	tail -n 60 "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
+	echo "--- Reynard Target Log Errors ---"
+	grep -i "error:" "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null | head -n 30 || true
+	echo "--- Archive Log Errors ---"
+	grep -i "error:" "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
 	exit 1
 fi
