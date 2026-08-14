@@ -27,33 +27,7 @@ if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
 	mkdir -p "$APP_PATH"
 fi
 
-if [ ! -f "$APP_PATH/Info.plist" ]; then
-	cat << 'EOF' > "$APP_PATH/Info.plist"
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleExecutable</key>
-	<string>Reynard</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.minh-ton.Reynard</string>
-	<key>CFBundleName</key>
-	<string>Reynard</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>0.9.0</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>arm64</string>
-	</array>
-</dict>
-</plist>
-EOF
-fi
-
+# Ensure Info.plist is complete
 plutil -replace CFBundleIdentifier -string "com.minh-ton.Reynard" "$APP_PATH/Info.plist" 2>/dev/null || true
 plutil -replace CFBundleExecutable -string "Reynard" "$APP_PATH/Info.plist" 2>/dev/null || true
 plutil -replace CFBundlePackageType -string "APPL" "$APP_PATH/Info.plist" 2>/dev/null || true
@@ -106,5 +80,6 @@ fi
 zip -r ../Reynard-TrollStore.tipa Payload -x "._*" -x ".DS_Store" -x "__MACOSX"
 cp ../Reynard-TrollStore.tipa ../Reynard-Jailbroken.ipa 2>/dev/null || true
 
-echo "TrollStore TIPA package creation completed successfully! Package size: $(wc -c < ../Reynard-TrollStore.tipa) bytes"
+FINAL_ZIP_SIZE=$(wc -c < ../Reynard-TrollStore.tipa)
+echo "TrollStore TIPA package creation completed successfully! Package size: $FINAL_ZIP_SIZE bytes"
 exit 0
