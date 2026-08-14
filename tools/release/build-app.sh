@@ -73,10 +73,10 @@ with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
 cd "$BROWSER_DIR"
 
 echo "Step 1: Building GeckoView framework target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
+xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild_geckoview.log" 2>&1 || true
 
 echo "Step 2: Building Reynard main application target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
+xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild_reynard.log" 2>&1 || true
 
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
@@ -106,9 +106,9 @@ if [ -f "$TARGET_APP/Reynard" ]; then
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
-	echo "--- Reynard Target Log Errors ---"
-	grep -i "error:" "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null | head -n 40 || true
-	echo "--- GeckoView Target Log Errors ---"
-	grep -i "error:" "$DIST_DIR/xcodebuild_geckoview.log" 2>/dev/null | head -n 40 || true
+	echo "--- GeckoView Target Log Tail (last 60 lines) ---"
+	tail -n 60 "$DIST_DIR/xcodebuild_geckoview.log" 2>/dev/null || true
+	echo "--- Reynard Target Log Tail (last 120 lines) ---"
+	tail -n 120 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
 	exit 1
 fi
