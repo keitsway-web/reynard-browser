@@ -10,7 +10,7 @@ XCCONFIG_PATH="$ROOT_DIR/browser/Configuration/Reynard.xcconfig"
 BROWSER_DIR="$ROOT_DIR/browser"
 
 rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR" "$DIST_DIR/build"
+mkdir -p "$DIST_DIR" "$DIST_DIR/build" "$DIST_DIR/objs"
 
 if [ ! -f "$ROOT_DIR/browser/GeckoView/View/TSUtils.h" ]; then
 	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/View/TSUtils.h"
@@ -87,11 +87,6 @@ xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic
 echo "Step 2: Building Reynard main application target..."
 xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
 
-echo "Step 3: Building Reynard scheme fallback if needed..."
-if [ ! -f "$DIST_DIR/build/Release-iphoneos/Reynard.app/Reynard" ]; then
-	xcodebuild build 		-project "$PROJECT_PATH" 		-scheme "Reynard" 		-destination 'generic/platform=iOS' 		-sdk iphoneos 		-arch arm64 		-configuration Release 		-xcconfig "$DIST_DIR/Reynard.xcconfig" 		SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		SYMROOT="$DIST_DIR/build" 		OBJROOT="$DIST_DIR/build/obj" 		CODE_SIGN_STYLE=Manual 		CODE_SIGNING_ALLOWED=NO 		CODE_SIGNING_REQUIRED=NO 		CODE_SIGN_IDENTITY="" 		DEVELOPMENT_TEAM="" 		PROVISIONING_PROFILE_SPECIFIER="" 		AD_HOC_CODE_SIGNING_ALLOWED=YES 		COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_scheme.log" || true
-fi
-
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
 FOUND_APP=""
@@ -114,22 +109,34 @@ if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	cp -R "$FOUND_APP" "$TARGET_APP"
 fi
 
-# Step 4: Guaranteed Full Swift Direct Compilation Fallback if binary is still missing
+# Step 3: Guaranteed Full Swift and ObjC direct compilation if binary is still missing
 if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/null || echo 0)" -lt 10000 ]; then
-	echo "Step 4: Compiling full 200+ Swift browser sources directly via swiftc..."
+	echo "Step 3: Compiling full Reynard browser native application directly..."
 	mkdir -p "$TARGET_APP"
 	
 	if [ ! -f "$TARGET_APP/Info.plist" ] && [ -f "$BROWSER_DIR/Reynard/Resources/Info.plist" ]; then
 		cp "$BROWSER_DIR/Reynard/Resources/Info.plist" "$TARGET_APP/Info.plist"
 	fi
 
-	ALL_OBJC_SOURCES=$(find "$BROWSER_DIR/Reynard" "$BROWSER_DIR/GeckoView" "$BROWSER_DIR/Helper" -name "*.m" -o -name "*.mm" 2>/dev/null | tr '
-' ' ')
+	# Compile all Objective-C and C sources
+	OBJC_OBJS=""
+	for src in $(find "$BROWSER_DIR/Reynard" "$BROWSER_DIR/GeckoView" "$BROWSER_DIR/Helper" \( -name "*.m" -o -name "*.mm" -o -name "*.c" \) 2>/dev/null); do
+		obj="$DIST_DIR/objs/$(basename "$src").o"
+		if echo "$src" | grep -q '\.mm$'; then
+			xcrun --sdk iphoneos clang++ -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -fobjc-arc 				-I "$BROWSER_DIR" -I "$BROWSER_DIR/GeckoView" -I "$BROWSER_DIR/GeckoView/Runtime" -I "$BROWSER_DIR/GeckoView/View" -I "$BROWSER_DIR/GeckoView/GeckoView" 				-I "$BROWSER_DIR/Reynard" -I "$BROWSER_DIR/Reynard/Shared" -I "$BROWSER_DIR/Reynard/JIT" -I "$BROWSER_DIR/Reynard/Bridging" 				-I "$BROWSER_DIR/Helper" -I "$GECKO_DIST/include" -I "$GECKO_DIST/include/GeckoView" 				-c "$src" -o "$obj" 2>/dev/null || true
+		else
+			xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -fobjc-arc 				-I "$BROWSER_DIR" -I "$BROWSER_DIR/GeckoView" -I "$BROWSER_DIR/GeckoView/Runtime" -I "$BROWSER_DIR/GeckoView/View" -I "$BROWSER_DIR/GeckoView/GeckoView" 				-I "$BROWSER_DIR/Reynard" -I "$BROWSER_DIR/Reynard/Shared" -I "$BROWSER_DIR/Reynard/JIT" -I "$BROWSER_DIR/Reynard/Bridging" 				-I "$BROWSER_DIR/Helper" -I "$GECKO_DIST/include" -I "$GECKO_DIST/include/GeckoView" 				-c "$src" -o "$obj" 2>/dev/null || true
+		fi
+		if [ -f "$obj" ]; then
+			OBJC_OBJS="$OBJC_OBJS $obj"
+		fi
+	done
+
 	ALL_SWIFT_SOURCES=$(find "$BROWSER_DIR/Reynard" "$BROWSER_DIR/GeckoView" -name "*.swift" ! -name "main.swift" 2>/dev/null | tr '
 ' ' ')
 	MAIN_SWIFT="$BROWSER_DIR/Reynard/main.swift"
 
-	xcrun --sdk iphoneos swiftc 		-target arm64-apple-ios13.0 		-sdk "$SDK_PATH" 		-import-objc-header "$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		-I "$BROWSER_DIR" 		-I "$BROWSER_DIR/GeckoView" 		-I "$BROWSER_DIR/GeckoView/Runtime" 		-I "$BROWSER_DIR/GeckoView/View" 		-I "$BROWSER_DIR/GeckoView/GeckoView" 		-I "$BROWSER_DIR/Reynard" 		-I "$BROWSER_DIR/Reynard/Shared" 		-I "$BROWSER_DIR/Reynard/JIT" 		-I "$BROWSER_DIR/Reynard/Bridging" 		-I "$BROWSER_DIR/Helper" 		-I "$GECKO_DIST/include" 		-I "$GECKO_DIST/include/GeckoView" 		-F "$GECKO_DIST/Frameworks" 		-F "$DIST_DIR/build/Release-iphoneos" 		-L "$GECKO_DIST/lib" 		-L "$GECKO_DIST/bin" 		-O 		$ALL_SWIFT_SOURCES 		$MAIN_SWIFT 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/swiftc_direct.log" || true
+	xcrun --sdk iphoneos swiftc 		-target arm64-apple-ios13.0 		-sdk "$SDK_PATH" 		-import-objc-header "$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		-I "$BROWSER_DIR" 		-I "$BROWSER_DIR/GeckoView" 		-I "$BROWSER_DIR/GeckoView/Runtime" 		-I "$BROWSER_DIR/GeckoView/View" 		-I "$BROWSER_DIR/GeckoView/GeckoView" 		-I "$BROWSER_DIR/Reynard" 		-I "$BROWSER_DIR/Reynard/Shared" 		-I "$BROWSER_DIR/Reynard/JIT" 		-I "$BROWSER_DIR/Reynard/Bridging" 		-I "$BROWSER_DIR/Helper" 		-I "$GECKO_DIST/include" 		-I "$GECKO_DIST/include/GeckoView" 		-F "$GECKO_DIST/Frameworks" 		-F "$DIST_DIR/build/Release-iphoneos" 		-L "$GECKO_DIST/lib" 		-L "$GECKO_DIST/bin" 		-O 		$OBJC_OBJS 		$ALL_SWIFT_SOURCES 		$MAIN_SWIFT 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/swiftc_direct.log" || true
 fi
 
 if [ -f "$TARGET_APP/Reynard" ]; then
