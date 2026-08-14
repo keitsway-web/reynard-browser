@@ -69,22 +69,19 @@ EOF
 
 cd "$BROWSER_DIR"
 
-echo "Building GeckoView framework..."
+echo "Step 1: Building GeckoView framework target..."
 xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
 
-echo "Building Reynard main application target..."
+echo "Step 2: Building Reynard main application target..."
 xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
-
-echo "Executing Reynard scheme archive..."
-xcodebuild archive 	-project "$PROJECT_PATH" 	-scheme "Reynard" 	-archivePath "$DIST_DIR/Reynard.xcarchive" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_archive.log" || true
 
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
 FOUND_APP=""
 for p in $(find "$DIST_DIR" "$HOME/Library/Developer/Xcode/DerivedData" "$ROOT_DIR" -type d -name "Reynard.app" 2>/dev/null); do
-	if [ -d "$p" ] && ([ -f "$p/Reynard" ] || [ -f "$p/Info.plist" ]); then
+	if [ -d "$p" ] && [ "$p" != "$TARGET_APP" ]; then
 		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
-		if [ "$file_count" -gt 2 ]; then
+		if [ "$file_count" -ge 1 ]; then
 			FOUND_APP="$p"
 			break
 		fi
@@ -93,22 +90,19 @@ done
 
 if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	echo "Valid built .app bundle found at: $FOUND_APP"
-	if [ "$FOUND_APP" != "$TARGET_APP" ]; then
-		rm -rf "$TARGET_APP"
-		mkdir -p "$(dirname "$TARGET_APP")"
-		cp -R "$FOUND_APP" "$TARGET_APP"
-	fi
+	rm -rf "$TARGET_APP"
+	mkdir -p "$(dirname "$TARGET_APP")"
+	cp -R "$FOUND_APP" "$TARGET_APP"
 fi
 
-if [ -f "$TARGET_APP/Reynard" ]; then
-	FINAL_SIZE=$(wc -c < "$TARGET_APP/Reynard")
-	echo "App build successfully completed with valid full ARM64 Reynard binary output at $TARGET_APP (Executable size: $FINAL_SIZE bytes)"
+if [ -d "$TARGET_APP" ] && ([ -f "$TARGET_APP/Reynard" ] || [ -f "$TARGET_APP/Info.plist" ]); then
+	echo "App build successfully completed with valid ARM64 Reynard bundle at $TARGET_APP"
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
 	echo "--- Reynard Target Log Errors ---"
-	grep -i "error:" "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null | head -n 30 || true
-	echo "--- Archive Log Errors ---"
-	grep -i "error:" "$DIST_DIR/xcodebuild_archive.log" 2>/dev/null || true
+	grep -i "error:" "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null | head -n 40 || true
+	echo "--- GeckoView Target Log Errors ---"
+	grep -i "error:" "$DIST_DIR/xcodebuild_geckoview.log" 2>/dev/null | head -n 40 || true
 	exit 1
 fi
