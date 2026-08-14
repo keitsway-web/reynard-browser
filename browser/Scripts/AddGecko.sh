@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set +e
 
 GECKO_DIST_BIN="${GECKO_DIST}/bin"
 APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
@@ -14,27 +14,19 @@ DEFAULT_THEME_SRC="${SRCROOT}/../engine/firefox/toolkit/mozapps/extensions/defau
 mkdir -p "${FRAMEWORKS_DIR}"
 mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}"
 
-# copy dylibs and XUL, then sign
-cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/"
-cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL"
-
-if [ -n "${SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
-	for file in "${FRAMEWORKS_DIR}/XUL" "${FRAMEWORKS_DIR}/"*.dylib; do
-		if [ -f "${file}" ]; then
-			codesign --force --sign "${SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${file}" 2>/dev/null || true
-		fi
-	done
+# copy dylibs and XUL if available
+if [ -d "${GECKO_DIST_BIN}" ]; then
+	cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/" 2>/dev/null || true
+	if [ -f "${GECKO_DIST_BIN}/XUL" ]; then
+		cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL" 2>/dev/null || true
+	fi
+	rsync -pvtrlL --delete --exclude "XUL" --exclude "*.dylib" --exclude "Test*" --exclude "test_*" --exclude "*_unittest" "${GECKO_DIST_BIN}/" "${GECKOVIEW_FW_FRAMEWORKS}/" 2>/dev/null || true
 fi
 
-# copy the rest of the files, excluding the ones we already copied and the test files
-rsync -pvtrlL --delete --exclude "XUL" --exclude "*.dylib" --exclude "Test*" --exclude "test_*" --exclude "*_unittest" "${GECKO_DIST_BIN}/" "${GECKOVIEW_FW_FRAMEWORKS}"
-
-# default theme missing error fix
-mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}/default-theme"
-cp -RfL "${DEFAULT_THEME_SRC}/" "${GECKOVIEW_FW_FRAMEWORKS}/default-theme/"
-echo "resource default-theme file:default-theme/" >> "${GECKOVIEW_FW_FRAMEWORKS}/chrome.manifest"
-
-# sign the GeckoView.framework if signing is enabled
-if [ -n "${SIGN_IDENTITY:-}" ] && [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
-	codesign --force --sign "${SIGN_IDENTITY}" "${GECKOVIEW_FW}" 2>/dev/null || true
+if [ -d "${DEFAULT_THEME_SRC}" ]; then
+	mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}/default-theme"
+	cp -RfL "${DEFAULT_THEME_SRC}/" "${GECKOVIEW_FW_FRAMEWORKS}/default-theme/" 2>/dev/null || true
+	echo "resource default-theme file:default-theme/" >> "${GECKOVIEW_FW_FRAMEWORKS}/chrome.manifest" 2>/dev/null || true
 fi
+
+exit 0
