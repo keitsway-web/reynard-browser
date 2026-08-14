@@ -54,12 +54,24 @@ EOF
 fi
 
 plutil -replace CFBundleIdentifier -string "com.minh-ton.Reynard" "$APP_PATH/Info.plist" 2>/dev/null || true
+plutil -replace CFBundleExecutable -string "Reynard" "$APP_PATH/Info.plist" 2>/dev/null || true
+plutil -replace CFBundlePackageType -string "APPL" "$APP_PATH/Info.plist" 2>/dev/null || true
 
 rm -rf "$WORK_DIR" "$ROOT_DIR/dist/Reynard.ipa" "$ROOT_DIR/dist/Reynard-TrollStore.tipa"
 mkdir -p "$WORK_DIR/Payload"
 cp -R "$APP_PATH" "$WORK_DIR/Payload/"
 
 cd "$WORK_DIR"
+
+plutil -replace CFBundleIdentifier -string "com.minh-ton.Reynard" "Payload/Reynard.app/Info.plist" 2>/dev/null || true
+plutil -replace CFBundleExecutable -string "Reynard" "Payload/Reynard.app/Info.plist" 2>/dev/null || true
+plutil -replace CFBundlePackageType -string "APPL" "Payload/Reynard.app/Info.plist" 2>/dev/null || true
+
+# Set full executable permissions for main binary and all dylibs/frameworks
+if [ -f "Payload/Reynard.app/Reynard" ]; then
+	chmod 0755 "Payload/Reynard.app/Reynard"
+fi
+find "Payload/Reynard.app" -type f \( -name "*.dylib" -o -name "XUL" -o -name "GeckoView" \) -exec chmod 0755 {} + 2>/dev/null || true
 
 PTRACE_JIT_SRC="$ROOT_DIR/browser/Reynard/JIT/Unsandboxed/ptrace_jit.c"
 PTRACE_JIT_OUT="Payload/Reynard.app/ptrace_jit"
