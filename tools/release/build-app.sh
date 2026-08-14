@@ -10,7 +10,7 @@ XCCONFIG_PATH="$ROOT_DIR/browser/Configuration/Reynard.xcconfig"
 BROWSER_DIR="$ROOT_DIR/browser"
 
 rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR"
+mkdir -p "$DIST_DIR" "$DIST_DIR/build"
 
 mkdir -p "$ROOT_DIR/browser/GeckoView/GeckoView"
 if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/GeckoViewSwiftSupport.h" ]; then
@@ -69,21 +69,23 @@ EOF
 
 cd "$BROWSER_DIR"
 
-echo "Step 1: Building GeckoView framework target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
+echo "Step 1: Building GeckoView framework..."
+xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
 
 echo "Step 2: Building Reynard main application target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
+xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
 
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
 FOUND_APP=""
-for p in $(find "$DIST_DIR" "$HOME/Library/Developer/Xcode/DerivedData" "$ROOT_DIR" -type d -name "Reynard.app" 2>/dev/null); do
+for p in "$DIST_DIR/build/Release-iphoneos/Reynard.app" $(find "$DIST_DIR" "$HOME/Library/Developer/Xcode/DerivedData" "$ROOT_DIR" -type d -name "Reynard.app" 2>/dev/null); do
 	if [ -d "$p" ] && [ "$p" != "$TARGET_APP" ]; then
-		file_count=$(find "$p" -type f 2>/dev/null | wc -l)
-		if [ "$file_count" -ge 1 ]; then
-			FOUND_APP="$p"
-			break
+		if [ -f "$p/Reynard" ] || [ -f "$p/Info.plist" ]; then
+			file_count=$(find "$p" -type f 2>/dev/null | wc -l)
+			if [ "$file_count" -gt 2 ]; then
+				FOUND_APP="$p"
+				break
+			fi
 		fi
 	fi
 done
@@ -95,8 +97,9 @@ if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	cp -R "$FOUND_APP" "$TARGET_APP"
 fi
 
-if [ -d "$TARGET_APP" ] && ([ -f "$TARGET_APP/Reynard" ] || [ -f "$TARGET_APP/Info.plist" ]); then
-	echo "App build successfully completed with valid ARM64 Reynard bundle at $TARGET_APP"
+if [ -f "$TARGET_APP/Reynard" ]; then
+	FINAL_SIZE=$(wc -c < "$TARGET_APP/Reynard")
+	echo "App build successfully completed with valid full ARM64 Reynard binary output at $TARGET_APP (Executable size: $FINAL_SIZE bytes)"
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
