@@ -96,7 +96,7 @@ jobs:
       - name: Build App
         run: |
           chmod +x tools/release/build-app.sh
-          ./tools/release/build-app.sh || (echo "=== XCODEBUILD REYNARD LOG ===" && cat dist/xcodebuild_reynard.log 2>/dev/null && echo "=== SWIFTC FULL LOG ===" && cat dist/swiftc_full.log 2>/dev/null && exit 1)
+          ./tools/release/build-app.sh || (echo "=== GECKOVIEW LOG ===" && cat dist/xcodebuild_geckoview.log 2>/dev/null && echo "=== REYNARD LOG ===" && cat dist/xcodebuild_reynard.log 2>/dev/null && echo "=== SCHEME LOG ===" && cat dist/xcodebuild_scheme.log 2>/dev/null && exit 1)
 
       - name: Create TIPA Package
         run: |

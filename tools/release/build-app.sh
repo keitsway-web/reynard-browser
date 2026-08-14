@@ -82,10 +82,15 @@ with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
 cd "$BROWSER_DIR"
 
 echo "Step 1: Building GeckoView framework target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild_geckoview.log" 2>&1 || true
+xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
 
 echo "Step 2: Building Reynard main application target..."
-xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO > "$DIST_DIR/xcodebuild_reynard.log" 2>&1 || true
+xcodebuild 	-project "$PROJECT_PATH" 	-target "Reynard" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_reynard.log" || true
+
+echo "Step 3: Building Reynard scheme fallback if needed..."
+if [ ! -f "$DIST_DIR/build/Release-iphoneos/Reynard.app/Reynard" ]; then
+	xcodebuild build 		-project "$PROJECT_PATH" 		-scheme "Reynard" 		-destination 'generic/platform=iOS' 		-sdk iphoneos 		-arch arm64 		-configuration Release 		-xcconfig "$DIST_DIR/Reynard.xcconfig" 		SWIFT_OBJC_BRIDGING_HEADER="$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		SYMROOT="$DIST_DIR/build" 		OBJROOT="$DIST_DIR/build/obj" 		CODE_SIGN_STYLE=Manual 		CODE_SIGNING_ALLOWED=NO 		CODE_SIGNING_REQUIRED=NO 		CODE_SIGN_IDENTITY="" 		DEVELOPMENT_TEAM="" 		PROVISIONING_PROFILE_SPECIFIER="" 		AD_HOC_CODE_SIGNING_ALLOWED=YES 		COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_scheme.log" || true
+fi
 
 TARGET_APP="$DIST_DIR/Reynard.xcarchive/Products/Applications/Reynard.app"
 
