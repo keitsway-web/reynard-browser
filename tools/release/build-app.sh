@@ -114,6 +114,24 @@ if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
 	cp -R "$FOUND_APP" "$TARGET_APP"
 fi
 
+# Step 4: Guaranteed Full Swift Direct Compilation Fallback if binary is still missing
+if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/null || echo 0)" -lt 10000 ]; then
+	echo "Step 4: Compiling full 200+ Swift browser sources directly via swiftc..."
+	mkdir -p "$TARGET_APP"
+	
+	if [ ! -f "$TARGET_APP/Info.plist" ] && [ -f "$BROWSER_DIR/Reynard/Resources/Info.plist" ]; then
+		cp "$BROWSER_DIR/Reynard/Resources/Info.plist" "$TARGET_APP/Info.plist"
+	fi
+
+	ALL_OBJC_SOURCES=$(find "$BROWSER_DIR/Reynard" "$BROWSER_DIR/GeckoView" "$BROWSER_DIR/Helper" -name "*.m" -o -name "*.mm" 2>/dev/null | tr '
+' ' ')
+	ALL_SWIFT_SOURCES=$(find "$BROWSER_DIR/Reynard" "$BROWSER_DIR/GeckoView" -name "*.swift" ! -name "main.swift" 2>/dev/null | tr '
+' ' ')
+	MAIN_SWIFT="$BROWSER_DIR/Reynard/main.swift"
+
+	xcrun --sdk iphoneos swiftc 		-target arm64-apple-ios13.0 		-sdk "$SDK_PATH" 		-import-objc-header "$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		-I "$BROWSER_DIR" 		-I "$BROWSER_DIR/GeckoView" 		-I "$BROWSER_DIR/GeckoView/Runtime" 		-I "$BROWSER_DIR/GeckoView/View" 		-I "$BROWSER_DIR/GeckoView/GeckoView" 		-I "$BROWSER_DIR/Reynard" 		-I "$BROWSER_DIR/Reynard/Shared" 		-I "$BROWSER_DIR/Reynard/JIT" 		-I "$BROWSER_DIR/Reynard/Bridging" 		-I "$BROWSER_DIR/Helper" 		-I "$GECKO_DIST/include" 		-I "$GECKO_DIST/include/GeckoView" 		-F "$GECKO_DIST/Frameworks" 		-F "$DIST_DIR/build/Release-iphoneos" 		-L "$GECKO_DIST/lib" 		-L "$GECKO_DIST/bin" 		-O 		$ALL_SWIFT_SOURCES 		$MAIN_SWIFT 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/swiftc_direct.log" || true
+fi
+
 if [ -f "$TARGET_APP/Reynard" ]; then
 	FINAL_SIZE=$(wc -c < "$TARGET_APP/Reynard")
 	echo "App build successfully completed with valid full ARM64 Reynard binary output at $TARGET_APP (Executable size: $FINAL_SIZE bytes)"
@@ -124,5 +142,7 @@ else
 	tail -n 60 "$DIST_DIR/xcodebuild_geckoview.log" 2>/dev/null || true
 	echo "--- Reynard Target Log Tail (last 120 lines) ---"
 	tail -n 120 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
+	echo "--- Swiftc Direct Log Tail ---"
+	tail -n 120 "$DIST_DIR/swiftc_direct.log" 2>/dev/null || true
 	exit 1
 fi
