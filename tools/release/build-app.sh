@@ -12,23 +12,6 @@ BROWSER_DIR="$ROOT_DIR/browser"
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR" "$DIST_DIR/build"
 
-mkdir -p "$ROOT_DIR/browser/GeckoView/GeckoView"
-if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/GeckoViewSwiftSupport.h" ]; then
-	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/GeckoView/GeckoViewSwiftSupport.h"
-#ifndef GeckoViewSwiftSupport_h
-#define GeckoViewSwiftSupport_h
-#endif
-EOF
-fi
-
-if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h" ]; then
-	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h"
-#ifndef IOSBootstrap_h
-#define IOSBootstrap_h
-#endif
-EOF
-fi
-
 if [ ! -f "$ROOT_DIR/browser/GeckoView/View/TSUtils.h" ]; then
 	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/View/TSUtils.h"
 #ifndef TSUtils_h
