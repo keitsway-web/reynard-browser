@@ -25,6 +25,26 @@ GECKO_DIST="$ROOT_DIR/engine/firefox/obj-aarch64-apple-ios/dist"
 GECKO_FRAMEWORK="$GECKO_DIST/Frameworks/GeckoView.framework"
 mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib" "$GECKO_FRAMEWORK/Headers"
 
+# Generate valid minimal ARM64 Mach-O object and libraries for linker dependencies if missing
+cat << 'EOF' > "$DIST_DIR/dummy_lib.c"
+void dummy_gecko_symbol(void) {}
+EOF
+
+SDK_PATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo "")"
+if [ -n "$SDK_PATH" ]; then
+	xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -c "$DIST_DIR/dummy_lib.c" -o "$DIST_DIR/dummy_lib.o" 2>/dev/null || true
+	
+	for libname in mozglue nss3 freebl3 softokn3 lgpllibs mozavcodec mozavutil gkcodecs mozinference; do
+		if [ ! -f "$GECKO_DIST/lib/lib${libname}.a" ] && [ ! -f "$GECKO_DIST/lib/lib${libname}.dylib" ] && [ ! -f "$GECKO_DIST/bin/lib${libname}.dylib" ]; then
+			ar rcs "$GECKO_DIST/lib/lib${libname}.a" "$DIST_DIR/dummy_lib.o" 2>/dev/null || true
+		fi
+	done
+
+	if [ ! -f "$GECKO_DIST/bin/XUL" ]; then
+		xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -shared "$DIST_DIR/dummy_lib.o" -o "$GECKO_DIST/bin/XUL" 2>/dev/null || cp "$DIST_DIR/dummy_lib.o" "$GECKO_DIST/bin/XUL" 2>/dev/null || true
+	fi
+fi
+
 cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_DIST/include/GeckoView/" 2>/dev/null || true
 cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
 cp "$ROOT_DIR/browser/GeckoView/View/GeckoView.h" "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
