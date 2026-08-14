@@ -29,21 +29,12 @@ if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h" ]; then
 EOF
 fi
 
-cp "$XCCONFIG_PATH" "$DIST_DIR/Reynard.xcconfig"
-
-BUILD_SHA=$(git -C "$ROOT_DIR" rev-parse HEAD | cut -c1-7)
-python3 -c "
-with open('$DIST_DIR/Reynard.xcconfig', 'r', encoding='utf-8') as f:
-    c = f.read()
-c = c.replace('CURRENT_BUILD = UNKNOWN', 'CURRENT_BUILD = $BUILD_SHA')
-c = c.replace('\$(SRCROOT)', '$BROWSER_DIR')
-with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
-    f.write(c)
-"
-
 GECKO_DIST="$ROOT_DIR/engine/firefox/obj-aarch64-apple-ios/dist"
 GECKO_FRAMEWORK="$GECKO_DIST/Frameworks/GeckoView.framework"
 mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib" "$GECKO_FRAMEWORK/Headers"
+
+cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_DIST/include/GeckoView/" 2>/dev/null || true
+cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
 
 cat << 'EOF' > "$GECKO_FRAMEWORK/Headers/GeckoView.h"
 #ifndef GeckoView_h
@@ -67,9 +58,21 @@ cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
 </plist>
 EOF
 
+cp "$XCCONFIG_PATH" "$DIST_DIR/Reynard.xcconfig"
+
+BUILD_SHA=$(git -C "$ROOT_DIR" rev-parse HEAD | cut -c1-7)
+python3 -c "
+with open('$DIST_DIR/Reynard.xcconfig', 'r', encoding='utf-8') as f:
+    c = f.read()
+c = c.replace('CURRENT_BUILD = UNKNOWN', 'CURRENT_BUILD = $BUILD_SHA')
+c = c.replace('\$(SRCROOT)', '$BROWSER_DIR')
+with open('$DIST_DIR/Reynard.xcconfig', 'w', encoding='utf-8') as f:
+    f.write(c)
+"
+
 cd "$BROWSER_DIR"
 
-echo "Step 1: Building GeckoView framework..."
+echo "Step 1: Building GeckoView framework target..."
 xcodebuild 	-project "$PROJECT_PATH" 	-target "GeckoView" 	-destination 'generic/platform=iOS' 	-sdk iphoneos 	-arch arm64 	-configuration Release 	-xcconfig "$DIST_DIR/Reynard.xcconfig" 	SYMROOT="$DIST_DIR/build" 	OBJROOT="$DIST_DIR/build/obj" 	CODE_SIGN_STYLE=Manual 	CODE_SIGNING_ALLOWED=NO 	CODE_SIGNING_REQUIRED=NO 	CODE_SIGN_IDENTITY="" 	DEVELOPMENT_TEAM="" 	PROVISIONING_PROFILE_SPECIFIER="" 	AD_HOC_CODE_SIGNING_ALLOWED=YES 	COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee "$DIST_DIR/xcodebuild_geckoview.log" || true
 
 echo "Step 2: Building Reynard main application target..."
