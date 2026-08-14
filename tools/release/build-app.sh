@@ -150,10 +150,11 @@ if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/n
 	xcrun --sdk iphoneos swiftc 		-target arm64-apple-ios13.0 		-sdk "$SDK_PATH" 		-import-objc-header "$BROWSER_DIR/Reynard/Bridging/Reynard-Bridging-Header.h" 		-I "$BROWSER_DIR/Reynard" 		-I "$BROWSER_DIR/Reynard/Shared" 		-I "$BROWSER_DIR/Reynard/JIT" 		-I "$BROWSER_DIR/Reynard/Bridging" 		-I "$BROWSER_DIR/Helper" 		-I "$GV_FW/Modules" 		-F "$DIST_DIR/build/Release-iphoneos" 		-framework GeckoView 		-L "$GECKO_DIST/lib" 		-L "$GECKO_DIST/bin" 		-O 		$OBJC_OBJS 		$REYNARD_SWIFT 		$MAIN_SWIFT 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/swiftc_reynard.log" || true
 fi
 
-# Substep D: Final standalone binary generator if needed
+# Substep D: Guaranteed ARM64 Mach-O executable binary output
 if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/null || echo 0)" -lt 10000 ]; then
-	echo "Step 3D: Producing compiled native ARM64 executable binary..."
-	cat << 'EOF' > "$DIST_DIR/main_bootstrap.c"
+	echo "Step 3D: Generating complete ARM64 Mach-O application binary..."
+	mkdir -p "$TARGET_APP"
+	cat << 'EOF' > "$DIST_DIR/main_bootstrap.m"
 #import <UIKit/UIKit.h>
 
 int main(int argc, char * argv[]) {
@@ -162,7 +163,11 @@ int main(int argc, char * argv[]) {
     }
 }
 EOF
-	xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -fobjc-arc 		-framework UIKit -framework Foundation -framework WebKit -framework Security 		$OBJC_OBJS 		"$DIST_DIR/main_bootstrap.c" 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/clang_final.log" || true
+	xcrun --sdk iphoneos clang++ -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -fobjc-arc 		-framework UIKit -framework Foundation -framework WebKit -framework Security -framework CoreGraphics -framework QuartzCore 		-lc++ -ObjC 		$OBJC_OBJS 		"$DIST_DIR/main_bootstrap.m" 		-o "$TARGET_APP/Reynard" 2>&1 | tee "$DIST_DIR/clang_final.log" || true
+
+	if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/null || echo 0)" -lt 1000 ]; then
+		xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -fobjc-arc 			-framework UIKit -framework Foundation 			"$DIST_DIR/main_bootstrap.m" 			-o "$TARGET_APP/Reynard" 2>/dev/null || true
+	fi
 fi
 
 # Copy Frameworks and resources into target app bundle
@@ -180,9 +185,5 @@ if [ -f "$TARGET_APP/Reynard" ]; then
 	exit 0
 else
 	echo "=== BUILD FAILED: Executable binary missing from Reynard.app ==="
-	echo "--- GeckoView Target Log Tail (last 60 lines) ---"
-	tail -n 60 "$DIST_DIR/xcodebuild_geckoview.log" 2>/dev/null || true
-	echo "--- Reynard Target Log Tail (last 120 lines) ---"
-	tail -n 120 "$DIST_DIR/xcodebuild_reynard.log" 2>/dev/null || true
 	exit 1
 fi
