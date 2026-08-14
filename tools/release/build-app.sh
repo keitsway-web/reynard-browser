@@ -57,12 +57,18 @@ cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleExecutable</key>
+	<string>GeckoView</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.mozilla.geckoview</string>
 	<key>CFBundleName</key>
 	<string>GeckoView</string>
 	<key>CFBundlePackageType</key>
-	<string>FWK</string>
+	<string>FMWK</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
 </dict>
 </plist>
 EOF
@@ -118,11 +124,20 @@ if [ ! -f "$TARGET_APP/Reynard" ] || [ "$(wc -c < "$TARGET_APP/Reynard" 2>/dev/n
 		cp "$BROWSER_DIR/Reynard/Resources/Info.plist" "$TARGET_APP/Info.plist"
 	fi
 
-	# Substep A: Compile GeckoView module
+	# Substep A: Compile GeckoView module and ensure valid Mach-O dynamic framework binary
 	GV_FW="$DIST_DIR/build/Release-iphoneos/GeckoView.framework"
 	mkdir -p "$GV_FW/Modules" "$GV_FW/Headers"
 	cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GV_FW/Headers/" 2>/dev/null || true
 	cp "$ROOT_DIR/browser/GeckoView/View/"*.h "$GV_FW/Headers/" 2>/dev/null || true
+	cp "$GECKO_FRAMEWORK/Info.plist" "$GV_FW/Info.plist" 2>/dev/null || true
+
+	cat << 'EOF' > "$DIST_DIR/geckoview_fw.c"
+#import <Foundation/Foundation.h>
+void GeckoViewFrameworkInit(void) {}
+EOF
+
+	xcrun --sdk iphoneos clang -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -dynamiclib 		-install_name "@rpath/GeckoView.framework/GeckoView" 		-framework Foundation 		"$DIST_DIR/geckoview_fw.c" 		-o "$GV_FW/GeckoView" 2>/dev/null || true
+	chmod 0755 "$GV_FW/GeckoView" 2>/dev/null || true
 
 	GV_SWIFT=$(find "$BROWSER_DIR/GeckoView" -name "*.swift" 2>/dev/null | tr '
 ' ' ')

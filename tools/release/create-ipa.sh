@@ -50,6 +50,7 @@ if [ ! -f "$APP_PATH/Info.plist" ]; then
 		<string>arm64</string>
 	</array>
 </dict>
+</plist>
 EOF
 fi
 
@@ -67,6 +68,20 @@ plutil -replace CFBundleIdentifier -string "com.minh-ton.Reynard" "Payload/Reyna
 plutil -replace CFBundleExecutable -string "Reynard" "Payload/Reynard.app/Info.plist" 2>/dev/null || true
 plutil -replace CFBundlePackageType -string "APPL" "Payload/Reynard.app/Info.plist" 2>/dev/null || true
 
+# Ensure all frameworks have valid Mach-O dynamic binary and plist
+for fw in $(find "Payload/Reynard.app/Frameworks" -maxdepth 1 -name "*.framework" 2>/dev/null || true); do
+	fw_name=$(basename "$fw" .framework)
+	if [ ! -f "$fw/$fw_name" ]; then
+		if [ -n "$SDK_PATH" ]; then
+			"$CLANG_PATH" -arch arm64 -isysroot "$SDK_PATH" -miphoneos-version-min=13.0 -dynamiclib 				-install_name "@rpath/${fw_name}.framework/${fw_name}" 				-framework Foundation 				-o "$fw/$fw_name" 2>/dev/null || true
+		fi
+	fi
+	if [ -f "$fw/$fw_name" ]; then
+		chmod 0755 "$fw/$fw_name"
+		ldid -S "$fw/$fw_name" 2>/dev/null || true
+	fi
+done
+
 # Set full executable permissions for main binary and all dylibs/frameworks
 if [ -f "Payload/Reynard.app/Reynard" ]; then
 	chmod 0755 "Payload/Reynard.app/Reynard"
@@ -77,13 +92,7 @@ PTRACE_JIT_SRC="$ROOT_DIR/browser/Reynard/JIT/Unsandboxed/ptrace_jit.c"
 PTRACE_JIT_OUT="Payload/Reynard.app/ptrace_jit"
 
 if [ -f "$PTRACE_JIT_SRC" ] && [ -n "$SDK_PATH" ]; then
-	"$CLANG_PATH" \
-		-arch arm64 \
-		-isysroot "$SDK_PATH" \
-		-miphoneos-version-min=13.0 \
-		-Os \
-		"$PTRACE_JIT_SRC" \
-		-o "$PTRACE_JIT_OUT" 2>/dev/null || true
+	"$CLANG_PATH" 		-arch arm64 		-isysroot "$SDK_PATH" 		-miphoneos-version-min=13.0 		-Os 		"$PTRACE_JIT_SRC" 		-o "$PTRACE_JIT_OUT" 2>/dev/null || true
 	chmod 0755 "$PTRACE_JIT_OUT" 2>/dev/null || true
 	if [ -f "$ROOT_DIR/browser/Reynard/JIT/Unsandboxed/ptrace_jit.entitlements" ]; then
 		ldid -S"$ROOT_DIR/browser/Reynard/Entitlements/Reynard.private.entitlements" "$PTRACE_JIT_OUT" 2>/dev/null || true
