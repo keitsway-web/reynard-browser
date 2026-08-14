@@ -29,19 +29,25 @@ if [ ! -f "$ROOT_DIR/browser/GeckoView/GeckoView/IOSBootstrap.h" ]; then
 EOF
 fi
 
+if [ ! -f "$ROOT_DIR/browser/GeckoView/View/TSUtils.h" ]; then
+	cat << 'EOF' > "$ROOT_DIR/browser/GeckoView/View/TSUtils.h"
+#ifndef TSUtils_h
+#define TSUtils_h
+#import <Foundation/Foundation.h>
+#endif
+EOF
+fi
+
 GECKO_DIST="$ROOT_DIR/engine/firefox/obj-aarch64-apple-ios/dist"
 GECKO_FRAMEWORK="$GECKO_DIST/Frameworks/GeckoView.framework"
 mkdir -p "$GECKO_DIST/bin" "$GECKO_DIST/include/GeckoView" "$GECKO_DIST/lib" "$GECKO_FRAMEWORK/Headers"
 
 cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_DIST/include/GeckoView/" 2>/dev/null || true
 cp "$ROOT_DIR/browser/GeckoView/GeckoView/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
-
-cat << 'EOF' > "$GECKO_FRAMEWORK/Headers/GeckoView.h"
-#ifndef GeckoView_h
-#define GeckoView_h
-#import <Foundation/Foundation.h>
-#endif
-EOF
+cp "$ROOT_DIR/browser/GeckoView/View/GeckoView.h" "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
+cp "$ROOT_DIR/browser/GeckoView/View/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
+cp "$ROOT_DIR/browser/GeckoView/Runtime/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
+cp "$ROOT_DIR/browser/Helper/"*.h "$GECKO_FRAMEWORK/Headers/" 2>/dev/null || true
 
 cat << 'EOF' > "$GECKO_FRAMEWORK/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
